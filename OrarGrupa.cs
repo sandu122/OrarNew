@@ -8,9 +8,6 @@ public class OrarGrupa
     private static readonly string[] Zile = { "Luni", "Marti", "Miercuri", "Joi", "Vineri", "Sambata" };
     private const int NrPerechiPeZi = 6; // ridicat la 6 pentru 36 sloturi
 
-    private readonly Random rnd = new();
-    private readonly int workWeeks = 15;
-
     public OrarGrupa(string grupa)
     {
         Grupa = grupa;
@@ -24,48 +21,59 @@ public class OrarGrupa
         }
     }
 
-    public void GenereazaOrar(List<Disciplina> discipline)
+    public void GenereazaOrar(List<Disciplina> discipline, int nrSaptamani)
     {
+        var indexSlot = 0;
+
         foreach (var disciplina in discipline)
         {
-            int perechiCurs = disciplina.OreCurs / workWeeks;
+            // Calculăm perechi/săptămână
+            int perechiCurs = disciplina.OreCurs / (2 * nrSaptamani);
+            int perechiSeminar = disciplina.OreSeminar / (2 * nrSaptamani);
+            int perechiLab = disciplina.OreLaborator / (2 * nrSaptamani);
+
+            // Plasăm cursurile
             for (int i = 0; i < perechiCurs; i++)
-                PlaseazaActivitate(new Activitate(disciplina.Denumire, TipActivitate.Curs));
+            {
+                PlaseazaActivitate(new Activitate(disciplina.Denumire, TipActivitate.Curs), ref indexSlot);
+            }
 
-            int perechiSeminar = disciplina.OreSeminar / workWeeks;
+            // Plasăm seminarele
             for (int i = 0; i < perechiSeminar; i++)
-                PlaseazaActivitate(new Activitate(disciplina.Denumire, TipActivitate.Seminar));
+            {
+                PlaseazaActivitate(new Activitate(disciplina.Denumire, TipActivitate.Seminar), ref indexSlot);
+            }
 
-            int perechiLab = disciplina.OreLaborator / workWeeks;
+            // Plasăm laboratoarele
             for (int i = 0; i < perechiLab; i++)
-                PlaseazaActivitate(new Activitate(disciplina.Denumire, TipActivitate.Laborator));
+            {
+                PlaseazaActivitate(new Activitate(disciplina.Denumire, TipActivitate.Laborator), ref indexSlot);
+            }
         }
     }
 
-    private void PlaseazaActivitate(Activitate activitate)
+    private void PlaseazaActivitate(Activitate activitate, ref int indexSlot)
     {
-        // încercăm random până găsim un slot valid
-        var sloturiLibere = Sloturi
-            .Where(s => s.ActivitateSaptamanal == null)
-            .GroupBy(s => s.Ziua)
-            .SelectMany(g =>
-            {
-                // numărăm câte ore are deja disciplina în acea zi
-                int countInZi = g.Count(s => s.ActivitateSaptamanal?.Disciplina == activitate.Disciplina);
-                if (countInZi < 3) return g; // max 3/zi
-                return Array.Empty<SlotOrar>();
-            })
-            .ToList();
+        while (indexSlot < Sloturi.Count)
+        {
+            var slotCurent = Sloturi[indexSlot];
 
-        if (sloturiLibere.Any())
-        {
-            var slotAles = sloturiLibere[rnd.Next(sloturiLibere.Count)];
-            slotAles.ActivitateSaptamanal = activitate;
+            // câte activități din aceeași disciplină există deja în ziua curentă
+            int countInZi = Sloturi
+                .Where(s => s.Ziua == slotCurent.Ziua && s.ActivitateSaptamanal?.Disciplina == activitate.Disciplina)
+                .Count();
+
+            if (slotCurent.ActivitateSaptamanal == null && countInZi < 3)
+            {
+                slotCurent.ActivitateSaptamanal = activitate;
+                indexSlot++;
+                return;
+            }
+
+            indexSlot++;
         }
-        else
-        {
-            Console.WriteLine($"⚠ Nu mai sunt sloturi libere pentru {activitate}");
-        }
+
+        Console.WriteLine($"⚠ Nu mai sunt sloturi libere pentru {activitate}");
     }
 
     public void Afiseaza()
