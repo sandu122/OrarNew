@@ -18,19 +18,21 @@
 
         public override string ToString()
         {
-            if (ActivitateSaptamanal != null)
-                return $"{Ziua} P{Perechea}: {ActivitateSaptamanal}";
+            List<string> descrieri = new();
 
-            if (ActivitateImpar != null && ActivitatePar != null)
-                return $"{Ziua} P{Perechea}: {ActivitateImpar} [impar] / {ActivitatePar} [par]";
+            if (ActivitateSaptamanal != null)
+                descrieri.Add($"{Ziua} P{Perechea}: {ActivitateSaptamanal.Disciplina} ({ActivitateSaptamanal.Tip}, saptamanal)");
 
             if (ActivitateImpar != null)
-                return $"{Ziua} P{Perechea}: {ActivitateImpar} [impar]";
+                descrieri.Add($"{Ziua} P{Perechea}: {ActivitateImpar.Disciplina} ({ActivitateImpar.Tip}, impar)");
 
             if (ActivitatePar != null)
-                return $"{Ziua} P{Perechea}: {ActivitatePar} [par]";
+                descrieri.Add($"{Ziua} P{Perechea}: {ActivitatePar.Disciplina} ({ActivitatePar.Tip}, par)");
 
-            return $"{Ziua} P{Perechea}: liber";
+            if (descrieri.Count == 0)
+                return $"{Ziua} P{Perechea}: liber";
+
+            return string.Join("\n", descrieri);
         }
 
         public bool EsteLiber()

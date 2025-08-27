@@ -32,42 +32,81 @@ public class OrarGrupa
             int perechiSeminar = disciplina.OreSeminar / (2 * nrSaptamani);
             int perechiLab = disciplina.OreLaborator / (2 * nrSaptamani);
 
-            // Plasăm cursurile
-            for (int i = 0; i < perechiCurs; i++)
+            // Regula pentru paritate (automat)
+            bool cuParitateCurs = disciplina.OreCurs <= 15;
+            bool cuParitateSeminar = disciplina.OreSeminar <= 15;
+            bool cuParitateLab = disciplina.OreLaborator <= 15;
+
+            // --- Cursuri ---
+            if (perechiCurs > 0)
             {
-                PlaseazaActivitate(new Activitate(disciplina.Denumire, TipActivitate.Curs), ref indexSlot);
+                for (int i = 0; i < perechiCurs; i++)
+                    PlaseazaActivitate(new Activitate(disciplina.Denumire, TipActivitate.Curs), false, ref indexSlot);
+            }
+            else if (disciplina.OreCurs > 0)
+            {
+                // Paritate
+                PlaseazaActivitate(new Activitate(disciplina.Denumire, TipActivitate.Curs), true, ref indexSlot);
             }
 
-            // Plasăm seminarele
-            for (int i = 0; i < perechiSeminar; i++)
+            // --- Seminare ---
+            if (perechiSeminar > 0)
             {
-                PlaseazaActivitate(new Activitate(disciplina.Denumire, TipActivitate.Seminar), ref indexSlot);
+                for (int i = 0; i < perechiSeminar; i++)
+                    PlaseazaActivitate(new Activitate(disciplina.Denumire, TipActivitate.Seminar), false, ref indexSlot);
+            }
+            else if (disciplina.OreSeminar > 0)
+            {
+                PlaseazaActivitate(new Activitate(disciplina.Denumire, TipActivitate.Seminar), true, ref indexSlot);
             }
 
-            // Plasăm laboratoarele
-            for (int i = 0; i < perechiLab; i++)
+            // --- Laboratoare ---
+            if (perechiLab > 0)
             {
-                PlaseazaActivitate(new Activitate(disciplina.Denumire, TipActivitate.Laborator), ref indexSlot);
+                for (int i = 0; i < perechiLab; i++)
+                    PlaseazaActivitate(new Activitate(disciplina.Denumire, TipActivitate.Laborator), false, ref indexSlot);
+            }
+            else if (disciplina.OreLaborator > 0)
+            {
+                PlaseazaActivitate(new Activitate(disciplina.Denumire, TipActivitate.Laborator), true, ref indexSlot);
             }
         }
     }
 
-    private void PlaseazaActivitate(Activitate activitate, ref int indexSlot)
+    private bool punePePar = true;
+
+    private void PlaseazaActivitate(Activitate activitate, bool cuParitate, ref int indexSlot)
     {
         while (indexSlot < Sloturi.Count)
         {
             var slotCurent = Sloturi[indexSlot];
 
-            // câte activități din aceeași disciplină există deja în ziua curentă
-            int countInZi = Sloturi
-                .Where(s => s.Ziua == slotCurent.Ziua && s.ActivitateSaptamanal?.Disciplina == activitate.Disciplina)
-                .Count();
-
-            if (slotCurent.ActivitateSaptamanal == null && countInZi < 3)
+            if (cuParitate)
             {
-                slotCurent.ActivitateSaptamanal = activitate;
-                indexSlot++;
-                return;
+                // Alternăm par/impar ca să fie mai echilibrat
+                if (punePePar && slotCurent.ActivitatePar == null)
+                {
+                    slotCurent.ActivitatePar = activitate;
+                    punePePar = false;
+                    indexSlot++;
+                    return;
+                }
+                else if (!punePePar && slotCurent.ActivitateImpar == null)
+                {
+                    slotCurent.ActivitateImpar = activitate;
+                    punePePar = true;
+                    indexSlot++;
+                    return;
+                }
+            }
+            else
+            {
+                if (slotCurent.ActivitateSaptamanal == null)
+                {
+                    slotCurent.ActivitateSaptamanal = activitate;
+                    indexSlot++;
+                    return;
+                }
             }
 
             indexSlot++;
