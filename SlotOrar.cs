@@ -16,6 +16,11 @@
             Perechea = perechea;
         }
 
+        public bool AreActivitate =>
+            ActivitateSaptamanal != null ||
+            ActivitatePar != null ||
+            ActivitateImpar != null;
+
         public override string ToString()
         {
             List<string> descrieri = new();

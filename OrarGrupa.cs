@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿
 
 namespace OrarUniver;
 
@@ -33,49 +31,23 @@ public class OrarGrupa
         }
     }
 
-    public void GenereazaOrar(List<Disciplina> discipline, int nrSaptamani)
+    // Numarul de activitati pe o zi
+    private int NumarPerechiZi(string ziua)
     {
-        var indexSlot = 0;
+        return Sloturi
+            .Where(s => s.Ziua == ziua)
+            .Count(s => s.AreActivitate);
+    }
 
-        foreach (var disciplina in discipline)
-        {
-            int perechiCurs = disciplina.OreCurs / (2 * nrSaptamani);
-            int perechiSeminar = disciplina.OreSeminar / (2 * nrSaptamani);
-            int perechiLab = disciplina.OreLaborator / (2 * nrSaptamani);
+    // Ziua cu cele mai putine perechi
+    private string AlegeZiuaCuIncarcareMinima()
+    {
+        var zile = Sloturi.Select(s => s.Ziua).Distinct().ToList();
 
-            // --- Cursuri ---
-            if (perechiCurs > 0)
-            {
-                for (int i = 0; i < perechiCurs; i++)
-                    PlaseazaActivitate(new Activitate(disciplina.Denumire, TipActivitate.Curs), false, ref indexSlot);
-            }
-            else if (disciplina.OreCurs > 0)
-            {
-                PlaseazaActivitate(new Activitate(disciplina.Denumire, TipActivitate.Curs), true, ref indexSlot);
-            }
-
-            // --- Seminare ---
-            if (perechiSeminar > 0)
-            {
-                for (int i = 0; i < perechiSeminar; i++)
-                    PlaseazaActivitate(new Activitate(disciplina.Denumire, TipActivitate.Seminar), false, ref indexSlot);
-            }
-            else if (disciplina.OreSeminar > 0)
-            {
-                PlaseazaActivitate(new Activitate(disciplina.Denumire, TipActivitate.Seminar), true, ref indexSlot);
-            }
-
-            // --- Laboratoare ---
-            if (perechiLab > 0)
-            {
-                for (int i = 0; i < perechiLab; i++)
-                    PlaseazaActivitate(new Activitate(disciplina.Denumire, TipActivitate.Laborator), false, ref indexSlot);
-            }
-            else if (disciplina.OreLaborator > 0)
-            {
-                PlaseazaActivitate(new Activitate(disciplina.Denumire, TipActivitate.Laborator), true, ref indexSlot);
-            }
-        }
+        return zile
+            .OrderBy(z => NumarPerechiZi(z))
+            .ThenBy(z => Guid.NewGuid()) // mică randomizare ca să nu fie mereu Luni
+            .First();
     }
 
     // ====== NOU: helperi pentru limitarea la 4 (preferat) sau 5 (absolut) perechi/zi ======
@@ -179,12 +151,73 @@ public class OrarGrupa
         return false;
     }
 
-    private void PlaseazaActivitate(Activitate activitate, bool cuParitate, ref int indexSlot)
+    private void PlaseazaCuCoeficient(Disciplina disc, TipActivitate tip, double coef)
     {
-        // PASS 1: plasare fără goluri izolate și max 4/zi
-        for (int i = indexSlot; i < Sloturi.Count; i++)
+        if (coef < 1)
         {
-            var slot = Sloturi[i];
+            // doar o activitate săptămânală
+            PlaseazaActivitate(new Activitate(disc.Denumire, tip), true);
+        }
+        else if (coef == 1)
+        {
+            // doar o activitate săptămânală
+            PlaseazaActivitate(new Activitate(disc.Denumire, tip), false);
+        }
+        else if (coef < 2)
+        {
+            // o dată săptămânal
+            PlaseazaActivitate(new Activitate(disc.Denumire, tip), false);
+            PlaseazaActivitate(new Activitate(disc.Denumire, tip), true);
+        }
+        else
+        {
+            // coef >= 2 – regula existentă (plasări multiple)
+            int nrPlasari = (int)Math.Round(coef);
+            for (int i = 0; i < nrPlasari; i++)
+            {
+                // aici păstrăm logica ta de distribuție normală
+                PlaseazaActivitate(new Activitate(disc.Denumire, tip), false);
+            }
+        }
+    }
+
+    public void GenereazaOrar(List<Disciplina> discipline, int nrSaptamani)
+    {
+        foreach (var disciplina in discipline)
+        {
+            double perechiCurs = disciplina.OreCurs / (2 * nrSaptamani);
+            double perechiSeminar = disciplina.OreSeminar / (2 * nrSaptamani);
+            double perechiLab = disciplina.OreLaborator / (2 * nrSaptamani);
+
+            // exemplu pentru cursuri
+            if (disciplina.OreCurs > 0)
+            {
+                PlaseazaCuCoeficient(disciplina, TipActivitate.Curs, perechiCurs);
+            }
+
+            // exemplu pentru seminare
+            if (disciplina.OreSeminar > 0)
+            {
+                PlaseazaCuCoeficient(disciplina, TipActivitate.Seminar, perechiSeminar);
+            }
+
+            // exemplu pentru laboratoare
+            if (disciplina.OreLaborator > 0)
+            {
+                PlaseazaCuCoeficient(disciplina, TipActivitate.Laborator, perechiLab);
+            }
+        }
+    }
+
+
+
+    private void PlaseazaActivitate(Activitate activitate, bool cuParitate)
+    {
+        var ziAleasa = AlegeZiuaCuIncarcareMinima();
+
+        // PASS 1: fără goluri izolate + max 4/zi
+        foreach (var slot in Sloturi.Where(s => s.Ziua == ziAleasa))
+        {
             if (!PoatePlasaInSlot(slot, cuParitate, out bool vaOcupaNou))
                 continue;
 
@@ -194,15 +227,13 @@ public class OrarGrupa
             if (dupaPlasare <= PreferatMaxPerechiPeZi && !CreeazaGolIzolat(slot.Ziua, slot.Perechea))
             {
                 ExecutaPlasare(slot, activitate, cuParitate);
-                indexSlot = i + 1;
                 return;
             }
         }
 
         // PASS 2: acceptăm și gol izolat dar max 4/zi
-        for (int i = indexSlot; i < Sloturi.Count; i++)
+        foreach (var slot in Sloturi.Where(s => s.Ziua == ziAleasa))
         {
-            var slot = Sloturi[i];
             if (!PoatePlasaInSlot(slot, cuParitate, out bool vaOcupaNou))
                 continue;
 
@@ -212,15 +243,13 @@ public class OrarGrupa
             if (dupaPlasare <= PreferatMaxPerechiPeZi)
             {
                 ExecutaPlasare(slot, activitate, cuParitate);
-                indexSlot = i + 1;
                 return;
             }
         }
 
         // PASS 3: permitem al 5-lea slot, indiferent de goluri
-        for (int i = 0; i < Sloturi.Count; i++)
+        foreach (var slot in Sloturi.Where(s => s.Ziua == ziAleasa))
         {
-            var slot = Sloturi[i];
             if (!PoatePlasaInSlot(slot, cuParitate, out bool vaOcupaNou))
                 continue;
 
@@ -230,12 +259,11 @@ public class OrarGrupa
             if (dupaPlasare <= AbsolutMaxPerechiPeZi)
             {
                 ExecutaPlasare(slot, activitate, cuParitate);
-                indexSlot = i + 1;
                 return;
             }
         }
 
-        Console.WriteLine($"⚠ Nu mai sunt sloturi libere pentru {activitate}");
+        Console.WriteLine($"⚠ Nu am găsit loc pentru {activitate}");
     }
 
 

@@ -10,7 +10,9 @@ var discipline = new List<Disciplina>
     new Disciplina("Matematica", 30, 45 , 0),
     new Disciplina("Limba Straina", 0, 60, 0),
     new Disciplina("Educatia Fizica", 0, 15, 0)*/
-    new Disciplina("Programarea Orientata pe Obiect", 30, 0, 30),
+
+
+    new Disciplina("Programarea Orientata pe Obiect", 30, 0, 15),
     new Disciplina("JavaScrypt", 30, 0, 30),
     new Disciplina("Retele de Calculatoare", 30, 0, 46),
     new Disciplina("Python pentru aplicatii", 30, 0, 44),
