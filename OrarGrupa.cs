@@ -1,15 +1,14 @@
-﻿
-
-namespace OrarUniver;
+﻿namespace OrarUniver;
 
 public class OrarGrupa
 {
     public string Grupa { get; set; }
-    public List<SlotOrar> Sloturi { get; set; } = new();
+    public List<SlotOrar> Sloturi { get; set; }
+    public List<Disciplina> Discipline { get; set; }
 
     private static readonly string[] Zile = { "Luni", "Marti", "Miercuri", "Joi", "Vineri", "Sambata" };
 
-    // Generăm 5 sloturi/zi cu preferinta de utilizare doar 4
+    // Logica/Preferinta pentru nr de sloturi
     private const int NrPerechiPeZi = 5;
     private const int PreferatMaxPerechiPeZi = 4;
     private const int AbsolutMaxPerechiPeZi = 5;
@@ -17,11 +16,13 @@ public class OrarGrupa
     // Pentru alternarea par/impar
     private bool punePePar = true;
 
-    public OrarGrupa(string grupa)
+    public OrarGrupa(string grupa, List<Disciplina> discipline)
     {
         Grupa = grupa;
+        Discipline = discipline;
+        Sloturi = new List<SlotOrar>();
 
-        // generăm sloturile goale
+        // Generearea sloturi goale pentru fiecare zi si pereche
         foreach (var zi in Zile)
         {
             for (int p = 1; p <= NrPerechiPeZi; p++)
@@ -29,6 +30,8 @@ public class OrarGrupa
                 Sloturi.Add(new SlotOrar(zi, p));
             }
         }
+
+        Discipline = discipline;
     }
 
     // Numarul de activitati pe o zi
@@ -94,6 +97,14 @@ public class OrarGrupa
         }
     }
 
+    // Verifică dacă slotul dat e liber
+    private bool SlotLiber(SlotOrar slot)
+    {
+        return slot.ActivitateSaptamanal == null
+            && slot.ActivitatePar == null
+            && slot.ActivitateImpar == null;
+    }
+
     private void ExecutaPlasare(SlotOrar slot, Activitate activitate, bool cuParitate)
     {
         if (cuParitate)
@@ -122,13 +133,7 @@ public class OrarGrupa
         }
     }
 
-    // Verifică dacă slotul dat e liber
-    private bool SlotLiber(SlotOrar slot)
-    {
-        return slot.ActivitateSaptamanal == null
-            && slot.ActivitatePar == null
-            && slot.ActivitateImpar == null;
-    }
+
 
     // Verifică dacă, după plasare, ziua ar avea "gol izolat" (1 ocupat, 2 liber, 3 ocupat etc.)
     private bool CreeazaGolIzolat(string zi, int pereche)
@@ -151,65 +156,73 @@ public class OrarGrupa
         return false;
     }
 
+    public void GenereazaOrar(List<Disciplina> discipline, int nrSaptamani, List<OrarGrupa>? toateGrupele = null)
+    {
+        foreach (var disc in discipline)
+        {
+            double perechiCurs = disc.OreCurs / (2 * nrSaptamani);
+            double perechiSeminar = disc.OreSeminar / (2 * nrSaptamani);
+            double perechiLab = disc.OreLaborator / (2 * nrSaptamani);
+
+                // Plasăm întâi Cursurile
+                if (disc.OreCurs > 0)
+                {
+                    if (disc.EsteComuna)
+                    {
+                        // Plasare comună pentru mai multe grupe
+                        PlaseazaComunaCuCoeficient(disc, TipActivitate.Curs, perechiCurs, toateGrupele);
+                    }
+                    else
+                    {
+                        PlaseazaCuCoeficient(disc, TipActivitate.Curs, perechiCurs);
+                    }
+                }
+
+                // Plasăm Seminarii
+                if (disc.OreSeminar > 0)
+                    PlaseazaCuCoeficient(disc, TipActivitate.Seminar, perechiSeminar);
+
+                // Plasăm Laboratoare
+                if (disc.OreLaborator > 0)
+                    PlaseazaCuCoeficient(disc, TipActivitate.Laborator, perechiLab);
+            
+        }
+    }
     private void PlaseazaCuCoeficient(Disciplina disc, TipActivitate tip, double coef)
     {
-        if (coef < 1)
+        int parteaIntreaga = (int)Math.Floor(coef);
+        double parteaFractionara = coef - parteaIntreaga;
+
+        // 1) Plasăm partea întreagă ca "săptămânal"
+        for (int i = 0; i < parteaIntreaga; i++)
         {
-            // doar o activitate săptămânală
-            PlaseazaActivitate(new Activitate(disc.Denumire, tip), true);
+            PlaseazaActivitate(new Activitate(disc.Denumire, tip), false); // false = saptamanal
         }
-        else if (coef == 1)
+
+        // 2) Dacă există fracțiune (>0), adăugăm o activitate par/impar
+        if (parteaFractionara > 0.0001) // toleranță la erori floating point
         {
-            // doar o activitate săptămânală
-            PlaseazaActivitate(new Activitate(disc.Denumire, tip), false);
-        }
-        else if (coef < 2)
-        {
-            // o dată săptămânal
-            PlaseazaActivitate(new Activitate(disc.Denumire, tip), false);
-            PlaseazaActivitate(new Activitate(disc.Denumire, tip), true);
-        }
-        else
-        {
-            // coef >= 2 – regula existentă (plasări multiple)
-            int nrPlasari = (int)Math.Round(coef);
-            for (int i = 0; i < nrPlasari; i++)
-            {
-                // aici păstrăm logica ta de distribuție normală
-                PlaseazaActivitate(new Activitate(disc.Denumire, tip), false);
-            }
+            PlaseazaActivitate(new Activitate(disc.Denumire, tip), true); // true = par/impar
         }
     }
 
-    public void GenereazaOrar(List<Disciplina> discipline, int nrSaptamani)
+    private void PlaseazaComunaCuCoeficient(Disciplina disc, TipActivitate tip, double coef, List<OrarGrupa> toateGrupele)
     {
-        foreach (var disciplina in discipline)
+        int parteaIntreaga = (int)Math.Floor(coef);
+        double parteaFractionara = coef - parteaIntreaga;
+
+        // 1) plasăm partea întreagă ca săptămânal
+        for (int i = 0; i < parteaIntreaga; i++)
         {
-            double perechiCurs = disciplina.OreCurs / (2 * nrSaptamani);
-            double perechiSeminar = disciplina.OreSeminar / (2 * nrSaptamani);
-            double perechiLab = disciplina.OreLaborator / (2 * nrSaptamani);
+            PlaseazaComunaActivitate(new Activitate(disc.Denumire, tip), false, disc, toateGrupele);
+        }
 
-            // exemplu pentru cursuri
-            if (disciplina.OreCurs > 0)
-            {
-                PlaseazaCuCoeficient(disciplina, TipActivitate.Curs, perechiCurs);
-            }
-
-            // exemplu pentru seminare
-            if (disciplina.OreSeminar > 0)
-            {
-                PlaseazaCuCoeficient(disciplina, TipActivitate.Seminar, perechiSeminar);
-            }
-
-            // exemplu pentru laboratoare
-            if (disciplina.OreLaborator > 0)
-            {
-                PlaseazaCuCoeficient(disciplina, TipActivitate.Laborator, perechiLab);
-            }
+        // 2) fracțiunea → par/impar
+        if (parteaFractionara > 0.0001)
+        {
+            PlaseazaComunaActivitate(new Activitate(disc.Denumire, tip), true, disc, toateGrupele);
         }
     }
-
-
 
     private void PlaseazaActivitate(Activitate activitate, bool cuParitate)
     {
@@ -266,6 +279,60 @@ public class OrarGrupa
         Console.WriteLine($"⚠ Nu am găsit loc pentru {activitate}");
     }
 
+
+    // Varianta de bază: plasează efectiv o activitate comună în același slot pentru toate grupele
+    private void PlaseazaComunaActivitate(Activitate activitate, bool cuParitate, Disciplina disc, List<OrarGrupa> toateGrupele)
+    {
+        // selectăm grupele care participă la disciplina comună
+        var grupeTarget = toateGrupele
+            .Where(g => g.Grupa == this.Grupa || disc.GrupeComune.Contains(g.Grupa))
+            .ToList();
+
+        foreach (var zi in Zile)
+        {
+            foreach (var pereche in Enumerable.Range(1, NrPerechiPeZi))
+            {
+                // verificăm dacă TOATE grupele au liber în slotul curent
+                bool toateLibere = grupeTarget.All(g =>
+                    g.Sloturi.Any(s => s.Ziua == zi && s.Perechea == pereche && s.EsteLiber())
+                );
+
+                if (toateLibere)
+                {
+                    foreach (var g in grupeTarget)
+                    {
+                        var slot = g.Sloturi.First(s => s.Ziua == zi && s.Perechea == pereche && s.EsteLiber());
+                        if (cuParitate)
+                        {
+                            // par/impar (alternanță)
+                            if (punePePar && slot.ActivitatePar == null)
+                            {
+                                slot.ActivitatePar = activitate;
+                                punePePar = false;
+                            }
+                            else if (!punePePar && slot.ActivitateImpar == null)
+                            {
+                                slot.ActivitateImpar = activitate;
+                                punePePar = true;
+                            }
+                            else
+                            {
+                                if (slot.ActivitatePar == null) slot.ActivitatePar = activitate;
+                                else if (slot.ActivitateImpar == null) slot.ActivitateImpar = activitate;
+                            }
+                        }
+                        else
+                        {
+                            slot.ActivitateSaptamanal = activitate;
+                        }
+                    }
+                    return; // am plasat cursul comun → ieșim
+                }
+            }
+        }
+
+        Console.WriteLine($"⚠ Nu am găsit loc pentru activitatea comună {activitate}");
+    }
 
     public void Afiseaza()
     {
