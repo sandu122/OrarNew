@@ -4,16 +4,19 @@
     {
         public string Ziua { get; set; }
         public int Perechea { get; set; }
+        public string Disciplina { get; set; }
+
 
         // Pentru săptămâni
         public Activitate ActivitateSaptamanal { get; set; }
         public Activitate ActivitateImpar { get; set; }
         public Activitate ActivitatePar { get; set; }
 
-        public SlotOrar(string ziua, int perechea)
+        public SlotOrar(string ziua, int perechea, string disciplina)
         {
             Ziua = ziua;
             Perechea = perechea;
+            Disciplina = disciplina;
         }
 
         public bool AreActivitate =>

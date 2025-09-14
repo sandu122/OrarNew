@@ -1,41 +1,34 @@
 ﻿using OrarUniver;
-using System.Text.Encodings.Web;
+using Npgsql;
 
-var disciplineInformatica = new List<Disciplina>
+namespace OrarUniver;
+
+public class Program
 {
-    new Disciplina("Fundamentele Programarii", 30, 30, 30,
-                   esteComuna: true, grupeComune: new List<string> { "IA2301(ro)" }),
+    public static void Main(string[] args)
+    {
+        var builder = WebApplication.CreateBuilder(args);
+        builder.Services.AddMemoryCache();
+        builder.Services.AddControllers();
+        builder.Services.AddCors(options =>
+        {
+            options.AddPolicy("AllowAll", builder=>
+            {
+                builder.AllowAnyOrigin()
+                      .AllowAnyMethod()
+                      .AllowAnyHeader();
+            });
+        });
+        builder.Services.AddScoped<IDb, Db>();
+        builder.Services.AddScoped<NpgsqlConnection>(el => new NpgsqlConnection(builder.Configuration.GetConnectionString("LocalConnection")));
+        Dapper.DefaultTypeMap.MatchNamesWithUnderscores = true;
 
-    new Disciplina("Sisteme de Operare", 30, 0, 30,
-                   esteComuna: true, grupeComune: new List<string> { "IA2301(ro)" })
-    /*new Disciplina("HTML si CSS", 30, 0, 30),
-    new Disciplina("Securitatea Cibernetica", 30, 0, 30),
-    new Disciplina("Matematica", 30, 46, 0),
-    new Disciplina("Limba Straina", 0, 74, 0),
-    new Disciplina("Educatia Fizica", 0, 0, 30)*/
-};
+        var app = builder.Build();
 
-var disciplineInformaticaAplicata = new List<Disciplina>
-{
-    new Disciplina("Fundamentele Programarii", 30, 30, 30,
-                   esteComuna: true, grupeComune: new List<string> { "I2301(ro)" }),
+        app.UseCors("AllowAll");
+        app.MapControllers();
+        app.Run();
+    }
+}
 
-    new Disciplina("Sisteme de Operare", 30, 0, 30,
-                   esteComuna: true, grupeComune: new List<string> { "I2301(ro)" }),
-    /*new Disciplina("HTML si CSS", 30, 0, 30),
-    new Disciplina("Securitatea Cibernetica", 30, 0, 30),
-    new Disciplina("Matematica", 30, 46, 0),
-    new Disciplina("Limba Straina", 0, 74, 0),
-    new Disciplina("Educatia Fizica", 0, 0, 30)*/
-};
 
-var orarInfo = new OrarGrupa("I2301(ro)", disciplineInformatica);
-var orarInfoA = new OrarGrupa("IA2301(ro)", disciplineInformaticaAplicata);
-
-var toateGrupele = new List<OrarGrupa> { orarInfo, orarInfoA };
-
-orarInfo.GenereazaOrar(disciplineInformatica, 15, toateGrupele);
-orarInfoA.GenereazaOrar(disciplineInformaticaAplicata, 15, toateGrupele);
-
-orarInfo.Afiseaza();
-orarInfoA.Afiseaza();

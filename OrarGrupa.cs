@@ -16,7 +16,7 @@ public class OrarGrupa
     // Pentru alternarea par/impar
     private bool punePePar = true;
 
-    public OrarGrupa(string grupa, List<Disciplina> discipline)
+    public OrarGrupa(string grupa, List<Disciplina> discipline, string name)
     {
         Grupa = grupa;
         Discipline = discipline;
@@ -27,7 +27,7 @@ public class OrarGrupa
         {
             for (int p = 1; p <= NrPerechiPeZi; p++)
             {
-                Sloturi.Add(new SlotOrar(zi, p));
+                Sloturi.Add(new SlotOrar(zi, p, name));
             }
         }
 
@@ -160,9 +160,9 @@ public class OrarGrupa
     {
         foreach (var disc in discipline)
         {
-            double perechiCurs = disc.OreCurs / (2 * nrSaptamani);
-            double perechiSeminar = disc.OreSeminar / (2 * nrSaptamani);
-            double perechiLab = disc.OreLaborator / (2 * nrSaptamani);
+            double? perechiCurs = disc.OreCurs / (2 * nrSaptamani);
+            double? perechiSeminar = disc.OreSeminar / (2 * nrSaptamani);
+            double? perechiLab = disc.OreLaborator / (2 * nrSaptamani);
 
                 // Plasăm întâi Cursurile
                 if (disc.OreCurs > 0)
@@ -188,10 +188,10 @@ public class OrarGrupa
             
         }
     }
-    private void PlaseazaCuCoeficient(Disciplina disc, TipActivitate tip, double coef)
+    private void PlaseazaCuCoeficient(Disciplina disc, TipActivitate tip, double? coef)
     {
-        int parteaIntreaga = (int)Math.Floor(coef);
-        double parteaFractionara = coef - parteaIntreaga;
+        int parteaIntreaga = (int)Math.Floor((decimal)coef);
+        double? parteaFractionara = coef - parteaIntreaga;
 
         // 1) Plasăm partea întreagă ca "săptămânal"
         for (int i = 0; i < parteaIntreaga; i++)
@@ -206,10 +206,10 @@ public class OrarGrupa
         }
     }
 
-    private void PlaseazaComunaCuCoeficient(Disciplina disc, TipActivitate tip, double coef, List<OrarGrupa> toateGrupele)
+    private void PlaseazaComunaCuCoeficient(Disciplina disc, TipActivitate tip, double? coef, List<OrarGrupa> toateGrupele)
     {
-        int parteaIntreaga = (int)Math.Floor(coef);
-        double parteaFractionara = coef - parteaIntreaga;
+        int parteaIntreaga = (int)Math.Floor((decimal)coef);
+        double? parteaFractionara = coef - parteaIntreaga;
 
         // 1) plasăm partea întreagă ca săptămânal
         for (int i = 0; i < parteaIntreaga; i++)
