@@ -16,10 +16,10 @@ public class OrarGrupa
     // Pentru alternarea par/impar
     private bool punePePar = true;
 
-    public OrarGrupa(string grupa, List<Disciplina> discipline, string name)
+    public OrarGrupa(string grupa, /*List<Disciplina> discipline,*/ string name)
     {
         Grupa = grupa;
-        Discipline = discipline;
+        /*Discipline = discipline;*/
         Sloturi = new List<SlotOrar>();
 
         // Generearea sloturi goale pentru fiecare zi si pereche
@@ -31,7 +31,7 @@ public class OrarGrupa
             }
         }
 
-        Discipline = discipline;
+        /*Discipline = discipline;*/
     }
 
     // Numarul de activitati pe o zi

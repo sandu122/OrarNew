@@ -27,7 +27,8 @@
 
     public class VStdPlanD : StdPlanD
     {
-        public string? Name { get; set; }
+        public string? ObjName { get; set; }
+        public string? Comun { get; set; }
     }
     public class StdPlanW
     {

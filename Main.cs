@@ -10,15 +10,6 @@ namespace OrarUniver;
 public class MainController(IDb db) : ControllerBase
 {   
     private readonly IDb _db = db;
-       
-    [HttpGet("Entity")]
-    public ActionResult GetEntity() => Ok(_db.GetEntity());
-
-    [HttpGet("StdPlanM")]
-    public ActionResult GetStdPlanM() => Ok("StdPlanM");
-
-    [HttpGet("StdPlanD")]
-    public ActionResult GetStdPlanD() => Ok("StdPlanD");
 
     [HttpGet("Start")]
     public ActionResult Start() => Ok(_db.Start());
@@ -35,7 +26,6 @@ public interface IDb
 public class Db(NpgsqlConnection dbConnect) : IDb
 {
     private readonly NpgsqlConnection _dbConnect = dbConnect;
-    ///private NpgsqlTransaction? _tr;
     public IEnumerable<Entity> GetEntity() 
     { 
         string strQ = "SELECT * FROM entity";
@@ -53,7 +43,7 @@ public class Db(NpgsqlConnection dbConnect) : IDb
 
     public IEnumerable<VStdPlanD> GetStdPlanD()
     {
-        string strQ = "SELECT * FROM v_std_plan_d";
+        string strQ = "SELECT * FROM v2_std_plan_d";
         var res = _dbConnect.Query<VStdPlanD>(strQ);
         return res;
     }
@@ -62,17 +52,18 @@ public class Db(NpgsqlConnection dbConnect) : IDb
     {
         var planDCall = GetStdPlanD();
 
-        //Disciplina disciplina = new();
         List<Disciplina> disciplinaInfromatica = new();
 
         foreach (var line in planDCall.Where(m => m.IdPlan == 1))
         {
             var disciplina = new Disciplina()
             {
-                Denumire = line.Name,
+                Denumire = line.ObjName,
                 OreCurs = line.CursCant,
                 OreSeminar = line.SeminarCant,
-                OreLaborator = line.LaboratorCant
+                OreLaborator = line.LaboratorCant,
+                EsteComuna = line.Comun == "comun"
+
             };
             disciplinaInfromatica.Add(disciplina);
         }
@@ -83,24 +74,25 @@ public class Db(NpgsqlConnection dbConnect) : IDb
         {
             var disciplina = new Disciplina()
             {
-                Denumire = line.Name,
+                Denumire = line.ObjName,
                 OreCurs = line.CursCant,
                 OreSeminar = line.SeminarCant,
-                OreLaborator = line.LaboratorCant
+                OreLaborator = line.LaboratorCant,
+                EsteComuna = line.Comun == "comun"
+
             };
             disciplinaInfromaticaAplicata.Add(disciplina);
         }
 
-        var orarInfo = new OrarGrupa("I2301(ro)", disciplinaInfromatica, "disciplinaInfromatica");
-        var orarInfoA = new OrarGrupa("IA2301(ro)", disciplinaInfromaticaAplicata, "disciplinaInfromaticaAplicata");
+        var orarInfo = new OrarGrupa("I2301(ro)", "disciplinaInfromatica");
+        var orarInfoA = new OrarGrupa("IA2301(ro)", "disciplinaInfromaticaAplicata");
 
-        var toateGrupele = new List<OrarGrupa> { orarInfo, orarInfoA };
         var listDiscipline = new List<SlotOrar> ();
         listDiscipline.AddRange(orarInfo.Sloturi);
         listDiscipline.AddRange(orarInfoA.Sloturi);
 
-        orarInfo.GenereazaOrar(disciplinaInfromatica, 15, toateGrupele);
-        orarInfoA.GenereazaOrar(disciplinaInfromaticaAplicata, 15, toateGrupele);
+        orarInfo.GenereazaOrar(disciplinaInfromatica, 15, new List<OrarGrupa> { orarInfo, orarInfoA });
+        orarInfoA.GenereazaOrar(disciplinaInfromaticaAplicata, 15, new List<OrarGrupa> { orarInfo, orarInfoA });
 
         return listDiscipline;
     }
