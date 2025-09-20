@@ -31,7 +31,7 @@ create table orarnew.std_plan_d(
 	id serial primary key
 	,id_plan int not null
 	,id_entity int not null
-	,curs_cant int not null
+	,id_cluster int
 	,seminar_cant int not null
 	,laborator_cant int not null
 		,constraint std_plan_d_fk1 FOREIGN key (id_plan) references orarnew.std_plan_m(id)
@@ -157,21 +157,11 @@ select * from orarnew.gcluster
 
 
 --Views/functions
-select * from orarnew.v2_std_plan_d where id_plan = 1;
-
- 
-create or replace view orarnew.v_std_plan_d as
-select m.*, e.name
-	from orarnew.std_plan_d m
-	left join orarnew.entity e on m.id_entity = e.id
-
 
 select * from orarnew.v2_std_plan_d
-create or replace view orarnew.v2_std_plan_d as
+create or replace view orarnew.v_std_plan_d as
 select m.*
-	,e.name obj_name
 	,e.filt1 comun
-	,c.name gruop_name
 from orarnew.std_plan_d m
 left join orarnew.entity e on m.id_entity = e.id
 
@@ -199,11 +189,31 @@ select cpc.*
 from orarnew.cluster_plan_connection cpc
 left join orarnew.entity e on cpc.id_lesson_name = e.id
 left join orarnew.entity e1 on cpc.id_cluster = e1.id
+
+
+select * from orarnew.v_lesson_cluster_group_plan where id_plan = 1 and (cluster_name != 'Group2' or cluster_name is null);
+create or replace view orarnew.v_lesson_cluster_group_plan as
+select 
+    m.*,                         -- all columns from std_plan_d
+    e_entity.filt1 as comun,     -- from entity linked to std_plan_d.id_entity
+    e_entity.name  as lesson_name, -- lesson name directly from std_plan_d's entity
+    e_cluster.name as cluster_name,
+    e_group.name   as group_name
+from orarnew.std_plan_d m
+left join orarnew.entity e_entity
+    on m.id_entity = e_entity.id
+left join orarnew.cluster_plan_connection cpc
+    on cpc.id_lesson_name = m.id_entity
+left join orarnew.entity e_cluster
+    on cpc.id_cluster = e_cluster.id
+left join orarnew.gcluster gc
+    on gc.id_cluster = e_cluster.id
+left join orarnew.entity e_group
+    on gc.id_group = e_group.id;
 	
 	
 	
-	
-	
+
 	
 	
 	

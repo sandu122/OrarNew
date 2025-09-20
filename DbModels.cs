@@ -1,4 +1,6 @@
-﻿namespace OrarUniver
+﻿using System.Diagnostics.Metrics;
+
+namespace OrarUniver
 {
     public class Entity
     {
@@ -25,11 +27,16 @@
         public int LaboratorCant { get; set; }
     }
 
-    public class VStdPlanD : StdPlanD
+    public class VStdPlanClusterGroupD : StdPlanD
     {
-        public string? ObjName { get; set; }
+        public string? LessonName { get; set; }
         public string? Comun { get; set; }
+        public string? ClusterName { get; set; }
+        public string? GroupName { get; set; }
     }
+
+
+
     public class StdPlanW
     {
         public int Id { get; set; }
@@ -57,4 +64,5 @@
         public string? Ziua { get; set; }
         public string? Perechea { get; set; }
     }
+
 }

@@ -2,6 +2,7 @@
 {
     public class SlotOrar
     {
+        public int Id { get; set; }
         public string Ziua { get; set; }
         public int Perechea { get; set; }
         public string Disciplina { get; set; }

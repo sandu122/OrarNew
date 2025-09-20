@@ -47,3 +47,38 @@ using System.Threading.Tasks;
     orarInfoA.Afiseaza();
 
 }*/
+
+
+/*List<Disciplina> disciplinaInfromatica = new();*/
+
+/*foreach (var line in planDCall.Where(m => m.IdPlan == 1))
+{
+    var disciplina = new Disciplina()
+    {
+        Denumire = line.LessonName,
+        OreCurs = line.CursCant,
+        OreSeminar = line.SeminarCant,
+        OreLaborator = line.LaboratorCant,
+        EsteComuna = line.Comun == "comun",
+       // GrupeComune = line.Comun == "comun" ? new List<string> { "IA2301(ro)", "IM2301(ro)", "IF2301(ro)" } : null
+
+
+    };
+    disciplinaInfromatica.Add(disciplina);
+}
+
+List<Disciplina> disciplinaInfromaticaAplicata = new();
+
+foreach (var line in planDCall.Where(m => m.IdPlan == 2))
+{
+    var disciplina = new Disciplina()
+    {
+        Denumire = line.LessonName,
+        OreCurs = line.CursCant,
+        OreSeminar = line.SeminarCant,
+        OreLaborator = line.LaboratorCant,
+        EsteComuna = line.Comun == "comun"
+
+    };
+    disciplinaInfromaticaAplicata.Add(disciplina);
+}*/
