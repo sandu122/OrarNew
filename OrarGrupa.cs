@@ -16,10 +16,9 @@ public class OrarGrupa
     // Pentru alternarea par/impar
     private bool punePePar = true;
 
-    public OrarGrupa(string grupa, /*List<Disciplina> discipline,*/ string name)
+    public OrarGrupa(string grupa, string name)
     {
         Grupa = grupa;
-        /*Discipline = discipline;*/
         Sloturi = new List<SlotOrar>();
 
         // Generearea sloturi goale pentru fiecare zi si pereche
@@ -30,8 +29,6 @@ public class OrarGrupa
                 Sloturi.Add(new SlotOrar(zi, p, name));
             }
         }
-
-        /*Discipline = discipline;*/
     }
 
     // Numarul de activitati pe o zi
@@ -278,9 +275,7 @@ public class OrarGrupa
         Console.WriteLine($"⚠ Nu am găsit loc pentru {activitate}");
     }
 
-
-    // Varianta de bază: plasează efectiv o activitate comună în același slot pentru toate grupele
-    private void PlaseazaComunaActivitate(Activitate activitate, bool cuParitate, Disciplina disc, List<OrarGrupa> toateGrupele)
+    /*private void PlaseazaComunaActivitate(Activitate activitate, bool cuParitate, Disciplina disc, List<OrarGrupa> toateGrupele)
     {
         // For each cluster in the discipline
         foreach (var cluster in disc.Clusters)
@@ -368,6 +363,122 @@ public class OrarGrupa
             }
 
             Console.WriteLine($"⚠ Nu am găsit loc pentru activitatea comună {activitate} în clusterul {cluster.Name}");
+        }
+    }*/
+
+    // Simplified: pick one random day and place in the first common free slot (no scoring)
+    private void PlaseazaComunaActivitate(Activitate activitate, bool cuParitate, Disciplina disc, List<OrarGrupa> toateGrupele)
+    {
+        // Pseudocode:
+        // for each cluster in discipline:
+        //   determine involved groups
+        //   if already placed (anywhere) -> continue
+        //   pick a random day
+        //   iterate pereche 1..NrPerechiPeZi
+        //       check all groups have a compatible free slot for that (zi,pereche)
+        //       if yes -> place (respect parity toggle), toggle parity if needed, break
+        //   if none found -> log warning
+        foreach (var cluster in disc.Clusters ?? new List<Cluster>())
+        {
+            var grupeTarget = toateGrupele
+                .Where(g => cluster.Groups != null && cluster.Groups.Contains(g.Grupa))
+                .ToList();
+            if (grupeTarget.Count == 0)
+                continue;
+
+            // Already placed anywhere?
+            bool alreadyPlaced = grupeTarget.Any(g =>
+                g.Sloturi.Any(s =>
+                    (!cuParitate && s.ActivitateSaptamanal != null &&
+                        s.ActivitateSaptamanal.IdEntity == disc.IdEntity &&
+                        s.ActivitateSaptamanal.Tip == activitate.Tip)
+                    ||
+                    (cuParitate &&
+                        ((s.ActivitatePar != null &&
+                          s.ActivitatePar.IdEntity == disc.IdEntity &&
+                          s.ActivitatePar.Tip == activitate.Tip)
+                         ||
+                         (s.ActivitateImpar != null &&
+                          s.ActivitateImpar.IdEntity == disc.IdEntity &&
+                          s.ActivitateImpar.Tip == activitate.Tip))
+                    )));
+            if (alreadyPlaced)
+                continue;
+
+            // Pick exactly one random day
+            string ziAleasa = Zile[Random.Shared.Next(Zile.Length)];
+
+            bool placed = false;
+            for (int pereche = 1; pereche <= NrPerechiPeZi && !placed; pereche++)
+            {
+                // Collect slots for all groups at (ziAleasa, pereche)
+                var slots = new List<SlotOrar>(grupeTarget.Count);
+                bool allOk = true;
+
+                foreach (var g in grupeTarget)
+                {
+                    var slot = g.Sloturi.FirstOrDefault(s => s.Ziua == ziAleasa && s.Perechea == pereche);
+                    if (slot == null)
+                    {
+                        allOk = false;
+                        break;
+                    }
+
+                    // Compatibility check
+                    if (!cuParitate)
+                    {
+                        if (!(slot.ActivitateSaptamanal == null &&
+                              slot.ActivitatePar == null &&
+                              slot.ActivitateImpar == null))
+                        {
+                            allOk = false;
+                            break;
+                        }
+                    }
+                    else
+                    {
+                        if (!(slot.ActivitateSaptamanal == null &&
+                              (slot.ActivitatePar == null || slot.ActivitateImpar == null)))
+                        {
+                            allOk = false;
+                            break;
+                        }
+                    }
+
+                    slots.Add(slot);
+                }
+
+                if (!allOk) continue;
+
+                // Place activity in gathered slots
+                foreach (var slot in slots)
+                {
+                    if (cuParitate)
+                    {
+                        if (punePePar && slot.ActivitatePar == null)
+                            slot.ActivitatePar = activitate;
+                        else if (!punePePar && slot.ActivitateImpar == null)
+                            slot.ActivitateImpar = activitate;
+                        else
+                        {
+                            if (slot.ActivitatePar == null) slot.ActivitatePar = activitate;
+                            else if (slot.ActivitateImpar == null) slot.ActivitateImpar = activitate;
+                        }
+                    }
+                    else
+                    {
+                        slot.ActivitateSaptamanal = activitate;
+                    }
+                }
+
+                if (cuParitate) punePePar = !punePePar;
+                placed = true;
+            }
+
+            if (!placed)
+            {
+                Console.WriteLine($"⚠ Nu am găsit slot comun (zi aleasă: {ziAleasa}) pentru {activitate} în clusterul {cluster.Name}");
+            }
         }
     }
 

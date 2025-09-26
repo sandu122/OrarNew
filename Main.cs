@@ -52,12 +52,13 @@ public class Db(NpgsqlConnection dbConnect) : IDb
 
     public IEnumerable<SlotOrar> Start()
     {
-        var planDCall = GetStdPlanD();
-        var commonLessons = planDCall.Where(m => m.Comun == "comun").ToList();
-        var nonCommonLessons = planDCall.Where(m => m.Comun != "comun").ToList();
+        var planDCall = GetStdPlanD().ToList();
 
-        var commonDiscipline = commonLessons
-            .GroupBy(m => new { m.IdEntity, m.IdPlan })
+        // Single LINQ operation instead of separate common/non-common processing
+        var allDiscipline = planDCall
+            .GroupBy(m => m.Comun == "comun" ?
+                new { m.IdEntity, m.IdPlan, Id = m.IdEntity } :
+                new { m.IdEntity, m.IdPlan, Id = m.Id })
             .Select(g => new Disciplina
             {
                 Id = g.First().Id,
@@ -67,9 +68,9 @@ public class Db(NpgsqlConnection dbConnect) : IDb
                 OreCurs = g.First().CursCant,
                 OreSeminar = g.First().SeminarCant,
                 OreLaborator = g.First().LaboratorCant,
-                EsteComuna = true,
+                EsteComuna = g.First().Comun == "comun",
                 Clusters = g
-                    .Where(x => !string.IsNullOrEmpty(x.ClusterName))
+                    .Where(x => !string.IsNullOrEmpty(x.ClusterName))// && x.ClusterName == "Grupa1")
                     .GroupBy(x => x.ClusterName)
                     .Select(cg => new Cluster
                     {
@@ -84,61 +85,38 @@ public class Db(NpgsqlConnection dbConnect) : IDb
             })
             .ToList();
 
-        var nonCommonDiscipline = nonCommonLessons
-            .GroupBy(m => m.Id)
-            .Select(g => new Disciplina
-            {
-                Id = g.First().Id, // or IdEntity if you want
-                IdEntity = g.Key,
-                IdPlan = g.First().IdPlan,
-                Denumire = g.First().LessonName,
-                OreCurs = g.First().CursCant,
-                OreSeminar = g.First().SeminarCant,
-                OreLaborator = g.First().LaboratorCant,
-                EsteComuna = false,
-                Clusters = g
-                    .Where(x => !string.IsNullOrEmpty(x.ClusterName))
-                    .GroupBy(x => x.ClusterName)
-                    .Select(cg => new Cluster
-                    {
-                        Name = cg.Key,
-                        Groups = cg
-                          .Where(x => !string.IsNullOrEmpty(x.GroupName))
-                          .Select(x => x.GroupName)
-                          .Distinct()
-                          .ToList()
-                    })
-                    .ToList()
-            })
-            .ToList();
-
-
-        var allDiscipline = commonDiscipline.Concat(nonCommonDiscipline).ToList();
-
         var orarInfo = new OrarGrupa("I2301(ro)", "disciplinaInfromatica");
         var orarInfoA = new OrarGrupa("IA2301(ro)", "disciplinaInfromaticaAplicata");
-        var toateGrupele = new List<OrarGrupa> { orarInfo, orarInfoA };
+        var orarInfo2 = new OrarGrupa("I2302(ro)", "disciplinaInfromatica2");
+        var orarInfoA2 = new OrarGrupa("IA2302(ro)", "disciplinaInfromaticaAplicata2");
+        var toateGrupele = new List<OrarGrupa> { orarInfo, orarInfoA, orarInfo2, orarInfoA2 };
 
         var listDiscipline = new List<SlotOrar> ();
         listDiscipline.AddRange(orarInfo.Sloturi);
         listDiscipline.AddRange(orarInfoA.Sloturi);
+        listDiscipline.AddRange(orarInfo2.Sloturi);
+        listDiscipline.AddRange(orarInfoA2.Sloturi);
 
 
         var groupPlanMap = new Dictionary<string, int>
         {
             { "I2301(ro)", 1 },
             { "IA2301(ro)", 2 },
+            { "I2302(ro)", 1 },
+            { "IA2302(ro)", 2 }
             // Add all groups and their IdPlan
         };
 
         foreach (var grupa in toateGrupele)
         {
-            int planId = groupPlanMap[grupa.Grupa];
-            var disciplineForGroup = allDiscipline
-                .Where(d => d.IdPlan == planId)
-                .ToList();
+            if (groupPlanMap.TryGetValue(grupa.Grupa, out int planId))
+            {
+                var disciplineForGroup = allDiscipline
+                    .Where(d => d.IdPlan == planId)
+                    .ToList();
 
-            grupa.GenereazaOrar(disciplineForGroup, 15, toateGrupele);
+                grupa.GenereazaOrar(disciplineForGroup, 15, toateGrupele);
+            }
         }
 
         return listDiscipline;
