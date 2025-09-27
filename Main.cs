@@ -70,7 +70,7 @@ public class Db(NpgsqlConnection dbConnect) : IDb
                 OreLaborator = g.First().LaboratorCant,
                 EsteComuna = g.First().Comun == "comun",
                 Clusters = g
-                    .Where(x => !string.IsNullOrEmpty(x.ClusterName))// && x.ClusterName == "Grupa1")
+                    .Where(x => !string.IsNullOrEmpty(x.ClusterName))
                     .GroupBy(x => x.ClusterName)
                     .Select(cg => new Cluster
                     {
@@ -101,8 +101,8 @@ public class Db(NpgsqlConnection dbConnect) : IDb
         var groupPlanMap = new Dictionary<string, int>
         {
             { "I2301(ro)", 1 },
-            { "IA2301(ro)", 2 },
             { "I2302(ro)", 1 },
+            { "IA2301(ro)", 2 },
             { "IA2302(ro)", 2 }
             // Add all groups and their IdPlan
         };

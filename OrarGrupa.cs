@@ -168,21 +168,26 @@ public class OrarGrupa
                     }
                     else
                     {
-                        PlaseazaCuCoeficient(disc, TipActivitate.Curs, perechiCurs);
+                        PlaseazaCuCoeficient(disc, TipActivitate.Curs, perechiCurs, toateGrupele);
+                        //PlaseazaCuCoeficient(disc, TipActivitate.Curs, perechiCurs);
                     }
                 }
 
                 // Plasăm Seminarii
                 if (disc.OreSeminar > 0)
-                    PlaseazaCuCoeficient(disc, TipActivitate.Seminar, perechiSeminar);
+                    PlaseazaCuCoeficient(disc, TipActivitate.Seminar, perechiSeminar, toateGrupele);
+                    //PlaseazaCuCoeficient(disc, TipActivitate.Seminar, perechiSeminar);
 
-                // Plasăm Laboratoare
-                if (disc.OreLaborator > 0)
-                    PlaseazaCuCoeficient(disc, TipActivitate.Laborator, perechiLab);
-            
+
+            // Plasăm Laboratoare
+            if (disc.OreLaborator > 0)
+                    PlaseazaCuCoeficient(disc, TipActivitate.Laborator, perechiLab, toateGrupele);
+                    //PlaseazaCuCoeficient(disc, TipActivitate.Laborator, perechiLab);
+
         }
     }
-    private void PlaseazaCuCoeficient(Disciplina disc, TipActivitate tip, double? coef)
+    //Versiunea stabila a Plaseaza cu coeficient
+    /*private void PlaseazaCuCoeficient(Disciplina disc, TipActivitate tip, double? coef)
     {
         int parteaIntreaga = (int)Math.Floor((decimal)coef);
         double? parteaFractionara = coef - parteaIntreaga;
@@ -198,6 +203,17 @@ public class OrarGrupa
         {
             PlaseazaActivitate(new Activitate(disc.Id, disc.IdEntity, disc.Denumire, tip), true); // true = par/impar
         }
+    }*/
+    private void PlaseazaCuCoeficient(Disciplina disc, TipActivitate tip, double? coef, List<OrarGrupa>? toateGrupele)
+    {
+        int parteaIntreaga = (int)Math.Floor((decimal)coef);
+        double? parteaFractionara = coef - parteaIntreaga;
+
+        for (int i = 0; i < parteaIntreaga; i++)
+            PlaseazaActivitate(new Activitate(disc.Id, disc.IdEntity, disc.Denumire, tip), false, toateGrupele);
+
+        if (parteaFractionara > 0.0001)
+            PlaseazaActivitate(new Activitate(disc.Id, disc.IdEntity, disc.Denumire, tip), true, toateGrupele);
     }
 
     private void PlaseazaComunaCuCoeficient(Disciplina disc, TipActivitate tip, double? coef, List<OrarGrupa> toateGrupele)
@@ -220,7 +236,7 @@ public class OrarGrupa
 
 
 
-    private void PlaseazaActivitate(Activitate activitate, bool cuParitate)
+    /*private void PlaseazaActivitate(Activitate activitate, bool cuParitate)
     {
         var ziAleasa = AlegeZiuaCuIncarcareMinima();
 
@@ -273,6 +289,76 @@ public class OrarGrupa
         }
 
         Console.WriteLine($"⚠ Nu am găsit loc pentru {activitate}");
+    }*/
+
+    private void PlaseazaActivitate(Activitate activitate, bool cuParitate, List<OrarGrupa>? toateGrupele)
+    {
+        var ziAleasa = AlegeZiuaCuIncarcareMinima();
+
+        bool AlreadyPlacedInOtherGroupSameSlot(SlotOrar candidat)
+        {
+            if (toateGrupele == null) return false;
+            return toateGrupele
+                .Where(g => g != this)
+                .Any(g => g.Sloturi.Any(s =>
+                    s.Ziua == candidat.Ziua &&
+                    s.Perechea == candidat.Perechea &&
+                    (
+                        s.ActivitateSaptamanal?.Id == activitate.Id ||
+                        s.ActivitatePar?.Id == activitate.Id ||
+                        s.ActivitateImpar?.Id == activitate.Id
+                    )));
+        }
+
+        // PASS 1
+        foreach (var slot in Sloturi.Where(s => s.Ziua == ziAleasa))
+        {
+            if (AlreadyPlacedInOtherGroupSameSlot(slot)) continue;
+            if (!PoatePlasaInSlot(slot, cuParitate, out bool vaOcupaNou)) continue;
+
+            int ocupate = PerechiOcupateInZi(slot.Ziua);
+            int dupaPlasare = ocupate + (vaOcupaNou ? 1 : 0);
+
+            if (dupaPlasare <= PreferatMaxPerechiPeZi && !CreeazaGolIzolat(slot.Ziua, slot.Perechea))
+            {
+                ExecutaPlasare(slot, activitate, cuParitate);
+                return;
+            }
+        }
+
+        // PASS 2
+        foreach (var slot in Sloturi.Where(s => s.Ziua == ziAleasa))
+        {
+            if (AlreadyPlacedInOtherGroupSameSlot(slot)) continue;
+            if (!PoatePlasaInSlot(slot, cuParitate, out bool vaOcupaNou)) continue;
+
+            int ocupate = PerechiOcupateInZi(slot.Ziua);
+            int dupaPlasare = ocupate + (vaOcupaNou ? 1 : 0);
+
+            if (dupaPlasare <= PreferatMaxPerechiPeZi)
+            {
+                ExecutaPlasare(slot, activitate, cuParitate);
+                return;
+            }
+        }
+
+        // PASS 3
+        foreach (var slot in Sloturi.Where(s => s.Ziua == ziAleasa))
+        {
+            if (AlreadyPlacedInOtherGroupSameSlot(slot)) continue;
+            if (!PoatePlasaInSlot(slot, cuParitate, out bool vaOcupaNou)) continue;
+
+            int ocupate = PerechiOcupateInZi(slot.Ziua);
+            int dupaPlasare = ocupate + (vaOcupaNou ? 1 : 0);
+
+            if (dupaPlasare <= AbsolutMaxPerechiPeZi)
+            {
+                ExecutaPlasare(slot, activitate, cuParitate);
+                return;
+            }
+        }
+
+        Console.WriteLine($"⚠ Nu am găsit loc (fără conflict inter-grupe) pentru {activitate}");
     }
 
     /*private void PlaseazaComunaActivitate(Activitate activitate, bool cuParitate, Disciplina disc, List<OrarGrupa> toateGrupele)
