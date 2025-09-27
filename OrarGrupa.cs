@@ -151,7 +151,7 @@ public class OrarGrupa
         return false;
     }
 
-    public void GenereazaOrar(List<Disciplina> discipline, int nrSaptamani, List<OrarGrupa>? toateGrupele = null)
+    public void GenereazaOrar(List<Disciplina> discipline, int nrSaptamani, List<OrarGrupa> toateGrupele)
     {
         foreach (var disc in discipline)
         {
@@ -169,41 +169,22 @@ public class OrarGrupa
                     else
                     {
                         PlaseazaCuCoeficient(disc, TipActivitate.Curs, perechiCurs, toateGrupele);
-                        //PlaseazaCuCoeficient(disc, TipActivitate.Curs, perechiCurs);
                     }
                 }
 
                 // Plasăm Seminarii
                 if (disc.OreSeminar > 0)
                     PlaseazaCuCoeficient(disc, TipActivitate.Seminar, perechiSeminar, toateGrupele);
-                    //PlaseazaCuCoeficient(disc, TipActivitate.Seminar, perechiSeminar);
+
 
 
             // Plasăm Laboratoare
             if (disc.OreLaborator > 0)
                     PlaseazaCuCoeficient(disc, TipActivitate.Laborator, perechiLab, toateGrupele);
-                    //PlaseazaCuCoeficient(disc, TipActivitate.Laborator, perechiLab);
 
         }
     }
-    //Versiunea stabila a Plaseaza cu coeficient
-    /*private void PlaseazaCuCoeficient(Disciplina disc, TipActivitate tip, double? coef)
-    {
-        int parteaIntreaga = (int)Math.Floor((decimal)coef);
-        double? parteaFractionara = coef - parteaIntreaga;
 
-        // 1) Plasăm partea întreagă ca "săptămânal"
-        for (int i = 0; i < parteaIntreaga; i++)
-        {
-            PlaseazaActivitate(new Activitate(disc.Id, disc.IdEntity, disc.Denumire, tip), false); // false = saptamanal
-        }
-
-        // 2) Dacă există fracțiune (>0), adăugăm o activitate par/impar
-        if (parteaFractionara > 0.0001) // toleranță la erori floating point
-        {
-            PlaseazaActivitate(new Activitate(disc.Id, disc.IdEntity, disc.Denumire, tip), true); // true = par/impar
-        }
-    }*/
     private void PlaseazaCuCoeficient(Disciplina disc, TipActivitate tip, double? coef, List<OrarGrupa>? toateGrupele)
     {
         int parteaIntreaga = (int)Math.Floor((decimal)coef);
@@ -233,63 +214,6 @@ public class OrarGrupa
             PlaseazaComunaActivitate(new Activitate(disc.Id, disc.IdEntity, disc.Denumire, tip), true, disc, toateGrupele);
         }
       }
-
-
-
-    /*private void PlaseazaActivitate(Activitate activitate, bool cuParitate)
-    {
-        var ziAleasa = AlegeZiuaCuIncarcareMinima();
-
-        // PASS 1: fără goluri izolate + max 4/zi
-        foreach (var slot in Sloturi.Where(s => s.Ziua == ziAleasa))
-        {
-            if (!PoatePlasaInSlot(slot, cuParitate, out bool vaOcupaNou))
-                continue;
-
-            int ocupate = PerechiOcupateInZi(slot.Ziua);
-            int dupaPlasare = ocupate + (vaOcupaNou ? 1 : 0);
-
-            if (dupaPlasare <= PreferatMaxPerechiPeZi && !CreeazaGolIzolat(slot.Ziua, slot.Perechea))
-            {
-                ExecutaPlasare(slot, activitate, cuParitate);
-                return;
-            }
-        }
-
-        // PASS 2: acceptăm și gol izolat dar max 4/zi
-        foreach (var slot in Sloturi.Where(s => s.Ziua == ziAleasa))
-        {
-            if (!PoatePlasaInSlot(slot, cuParitate, out bool vaOcupaNou))
-                continue;
-
-            int ocupate = PerechiOcupateInZi(slot.Ziua);
-            int dupaPlasare = ocupate + (vaOcupaNou ? 1 : 0);
-
-            if (dupaPlasare <= PreferatMaxPerechiPeZi)
-            {
-                ExecutaPlasare(slot, activitate, cuParitate);
-                return;
-            }
-        }
-
-        // PASS 3: permitem al 5-lea slot, indiferent de goluri
-        foreach (var slot in Sloturi.Where(s => s.Ziua == ziAleasa))
-        {
-            if (!PoatePlasaInSlot(slot, cuParitate, out bool vaOcupaNou))
-                continue;
-
-            int ocupate = PerechiOcupateInZi(slot.Ziua);
-            int dupaPlasare = ocupate + (vaOcupaNou ? 1 : 0);
-
-            if (dupaPlasare <= AbsolutMaxPerechiPeZi)
-            {
-                ExecutaPlasare(slot, activitate, cuParitate);
-                return;
-            }
-        }
-
-        Console.WriteLine($"⚠ Nu am găsit loc pentru {activitate}");
-    }*/
 
     private void PlaseazaActivitate(Activitate activitate, bool cuParitate, List<OrarGrupa>? toateGrupele)
     {
@@ -361,96 +285,6 @@ public class OrarGrupa
         Console.WriteLine($"⚠ Nu am găsit loc (fără conflict inter-grupe) pentru {activitate}");
     }
 
-    /*private void PlaseazaComunaActivitate(Activitate activitate, bool cuParitate, Disciplina disc, List<OrarGrupa> toateGrupele)
-    {
-        // For each cluster in the discipline
-        foreach (var cluster in disc.Clusters)
-        {
-            // Find all OrarGrupa objects that match the group names in this cluster
-            var grupeTarget = toateGrupele
-                .Where(g => cluster.Groups.Contains(g.Grupa))
-                .ToList();
-
-            if (!grupeTarget.Any())
-                continue; // No groups for this cluster, skip 
-
-            // Try to find a common free slot for all groups in this cluster
-            foreach (var zi in Zile) //Iteration changed with GPT5
-            {
-                for (int pereche = 1; pereche <= NrPerechiPeZi; pereche++)
-                {
-                    // Check if already placed
-                    bool alreadyPlaced = grupeTarget.Any(g =>
-                        g.Sloturi.Any(s =>
-                            s.Ziua == zi &&
-                            s.Perechea == pereche &&
-                            (
-                                (!cuParitate && s.ActivitateSaptamanal != null &&
-                                    s.ActivitateSaptamanal.IdEntity == disc.IdEntity &&
-                                    s.ActivitateSaptamanal.Tip == activitate.Tip
-                                )
-                                ||
-                                (cuParitate && (
-                                    (s.ActivitatePar != null &&
-                                        s.ActivitatePar.IdEntity == disc.IdEntity &&
-                                        s.ActivitatePar.Tip == activitate.Tip
-                                    )
-                                    ||
-                                    (s.ActivitateImpar != null &&
-                                        s.ActivitateImpar.IdEntity == disc.IdEntity &&
-                                        s.ActivitateImpar.Tip == activitate.Tip
-                                    )
-                                ))
-                            )
-                        )
-                    );
-                    if (alreadyPlaced)
-                        return; // Skip, already placed
-
-                    // Find the candidate slots for all groups
-                    var candidateSlots = grupeTarget
-                        .Select(g => g.Sloturi.FirstOrDefault(s => s.Ziua == zi && s.Perechea == pereche && s.EsteLiber()))
-                        .ToList();
-
-                    // If any group has no free slot here, skip
-                    if (candidateSlots.Any(s => s == null))
-                        continue;
-
-                    // Place the activity
-                    foreach (var slot in candidateSlots)
-                    {
-                        if (cuParitate)
-                        {
-                            if (punePePar && slot.ActivitatePar == null)
-                            {
-                                slot.ActivitatePar = activitate;
-                            }
-                            else if (!punePePar && slot.ActivitateImpar == null)
-                            {
-                                slot.ActivitateImpar = activitate;
-                            }
-                            else
-                            {
-                                if (slot.ActivitatePar == null) slot.ActivitatePar = activitate;
-                                else if (slot.ActivitateImpar == null) slot.ActivitateImpar = activitate;
-                            }
-                        }
-                        else
-                        {
-                            slot.ActivitateSaptamanal = activitate;
-                        }
-                    }
-
-                    // Toggle parity AFTER placement
-                    if (cuParitate) punePePar = !punePePar;
-
-                    return; // placed successfully
-                }
-            }
-
-            Console.WriteLine($"⚠ Nu am găsit loc pentru activitatea comună {activitate} în clusterul {cluster.Name}");
-        }
-    }*/
 
     // Simplified: pick one random day and place in the first common free slot (no scoring)
     private void PlaseazaComunaActivitate(Activitate activitate, bool cuParitate, Disciplina disc, List<OrarGrupa> toateGrupele)

@@ -69,7 +69,7 @@ public class Db(NpgsqlConnection dbConnect) : IDb
                 OreSeminar = g.First().SeminarCant,
                 OreLaborator = g.First().LaboratorCant,
                 EsteComuna = g.First().Comun == "comun",
-                Clusters = g
+                Clusters = [.. g
                     .Where(x => !string.IsNullOrEmpty(x.ClusterName))
                     .GroupBy(x => x.ClusterName)
                     .Select(cg => new Cluster
@@ -80,8 +80,7 @@ public class Db(NpgsqlConnection dbConnect) : IDb
                             .Select(x => x.GroupName)
                             .Distinct()
                             .ToList()
-                    })
-                    .ToList()
+                    })]
             })
             .ToList();
 

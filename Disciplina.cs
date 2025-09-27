@@ -12,12 +12,12 @@ namespace OrarUniver
         public double? OreSeminar { get; set; }
         public double? OreLaborator { get; set; }
         public bool EsteComuna { get; set; } = false;
-        public List<Cluster>? Clusters { get; set; } = new();
+        public List<Cluster?>? Clusters { get; set; }
     }
 
     public class Cluster
     {
         public string? Name { get; set; }
-        public List<string>? Groups { get; set; } = new();
+        public List<string?>? Groups { get; set; }
     }
 }
