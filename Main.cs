@@ -19,108 +19,224 @@ public class MainController(IDb db) : ControllerBase
 
 public interface IDb 
 {
-    public IEnumerable<Entity> GetEntity();
-    public IEnumerable<StdPlanM> GetStdPlanM();
-    public IEnumerable<VStdPlanClusterGroupD> GetStdPlanD();
+    public IEnumerable<VProfLectCluster> GetProfLectCluster();
     public IEnumerable<SlotOrar> Start();
 }
 
 public class Db(NpgsqlConnection dbConnect) : IDb
 {
     private readonly NpgsqlConnection _dbConnect = dbConnect;
-    public IEnumerable<Entity> GetEntity() 
-    { 
-        string strQ = "SELECT * FROM entity";
 
-        var res = _dbConnect.Query<Entity>(strQ);
-        return res;
-    }
-
-    public IEnumerable<StdPlanM> GetStdPlanM()
+    public IEnumerable<VProfLectCluster> GetProfLectCluster()
     {
-        string strQ = "SELECT * FROM std_plan_m";
-        var res = _dbConnect.Query<StdPlanM>(strQ);
-        return res;
-    }
-
-    public IEnumerable<VStdPlanClusterGroupD> GetStdPlanD()
-    {
-        string strQ = "SELECT * FROM v_lesson_cluster_group_plan";
-        var res = _dbConnect.Query<VStdPlanClusterGroupD>(strQ);
+        string strQ = "SELECT * FROM v_prof_lect_cluster_2";
+        var res = _dbConnect.Query<VProfLectCluster>(strQ);
         return res;
     }
 
     public IEnumerable<SlotOrar> Start()
     {
-        var planDCall = GetStdPlanD().ToList();
-
-        // Single LINQ operation instead of separate common/non-common processing
-        var allDiscipline = planDCall
-            .GroupBy(m => m.Comun == "comun" ?
-                new { m.IdEntity, m.IdPlan, Id = m.IdEntity } :
-                new { m.IdEntity, m.IdPlan, Id = m.Id })
-            .Select(g => new Disciplina
-            {
-                Id = g.First().Id,
-                IdEntity = g.Key.IdEntity,
-                IdPlan = g.Key.IdPlan,
-                Denumire = g.First().LessonName,
-                OreCurs = g.First().CursCant,
-                OreSeminar = g.First().SeminarCant,
-                OreLaborator = g.First().LaboratorCant,
-                EsteComuna = g.First().Comun == "comun",
-                Clusters = [.. g
-                    .Where(x => !string.IsNullOrEmpty(x.ClusterName))
-                    .GroupBy(x => x.ClusterName)
-                    .Select(cg => new Cluster
+        var infoPlanEx = GetProfLectCluster().ToList();
+        var assignments = infoPlanEx
+                    .GroupBy(r => new { r.LessonId, r.LessonName, r.LessonType, r.CantPWeek, r.ProfessorId, r.Professor })
+                    .Select(g =>
                     {
-                        Name = cg.Key,
-                        Groups = cg
-                            .Where(x => !string.IsNullOrEmpty(x.GroupName))
-                            .Select(x => x.GroupName)
-                            .Distinct()
-                            .ToList()
-                    })]
-            })
-            .ToList();
+                        var assignment = new Disciplina
+                        {
+                            LessonId = g.Key.LessonId,
+                            LessonName = g.Key.LessonName,
+                            LessonType = g.Key.LessonType,
+                            HoursPerWeek = g.Key.CantPWeek,
+                            ProfessorId = g.Key.ProfessorId,
+                            Professor = g.Key.Professor
+                        };
 
-        var orarInfo = new OrarGrupa("I2301(ro)", "disciplinaInfromatica");
-        var orarInfoA = new OrarGrupa("IA2301(ro)", "disciplinaInfromaticaAplicata");
-        var orarInfo2 = new OrarGrupa("I2302(ro)", "disciplinaInfromatica2");
-        var orarInfoA2 = new OrarGrupa("IA2302(ro)", "disciplinaInfromaticaAplicata2");
-        var toateGrupele = new List<OrarGrupa> { orarInfo, orarInfoA, orarInfo2, orarInfoA2 };
+                        switch (g.Key.LessonType?.ToLower())
+                        {
+                            case "prelegere":
+                                var target = g.First();
+                                bool isCluster = string.Equals(target.TargetType, "cluster", StringComparison.OrdinalIgnoreCase);
 
-        var listDiscipline = new List<SlotOrar> ();
-        listDiscipline.AddRange(orarInfo.Sloturi);
-        listDiscipline.AddRange(orarInfoA.Sloturi);
-        listDiscipline.AddRange(orarInfo2.Sloturi);
-        listDiscipline.AddRange(orarInfoA2.Sloturi);
+                                if (isCluster)
+                                {
+                                    var groupRows = infoPlanEx
+                                        .Where(x =>
+                                            string.Equals(x.TargetType, "group", StringComparison.OrdinalIgnoreCase) &&
+                                            x.ParentName == target.TargetName)
+                                        .Distinct()
+                                        .ToList();
 
+                                    assignment.Groups = groupRows
+                                        .Select(x => x.TargetName!)
+                                        .Distinct()
+                                        .ToList();
 
-        var groupPlanMap = new Dictionary<string, int>
-        {
-            { "I2301(ro)", 1 },
-            { "I2302(ro)", 1 },
-            { "IA2301(ro)", 2 },
-            { "IA2302(ro)", 2 }
-            // Add all groups and their IdPlan
-        };
+                                    assignment.GroupIds = groupRows
+                                        .Select(x => x.TargetId)
+                                        .Distinct()
+                                        .ToList();
+                                }
+                                else
+                                {
+                                    // este grupă: folosim propriul ID și (dacă dorești) numele părintelui ca afișare
+                                    var groupId = target.TargetId;
+                                    var groupName = target.ParentName ?? target.TargetName;
 
-        foreach (var grupa in toateGrupele)
-        {
-            if (groupPlanMap.TryGetValue(grupa.Grupa, out int planId))
-            {
-                var disciplineForGroup = allDiscipline
-                    .Where(d => d.IdPlan == planId)
+                                    assignment.Groups = new List<string> { groupName! };
+                                    assignment.GroupIds = new List<int> { groupId };
+                                }
+                                break;
+
+                            case "seminar":
+                                assignment.Group = g.Select(x => x.TargetName).FirstOrDefault();
+                                assignment.GroupId = g.Select(x => (int?)x.TargetId).FirstOrDefault();
+                                break;
+
+                            case "laborator":
+                                assignment.LabGroups = g
+                                    .GroupBy(x => new { x.ParentName, x.ParentId })
+                                    .Select(gr => new LabGroup
+                                    {
+                                        Group = gr.Key.ParentName,
+                                        GroupId = gr.Key.ParentId,
+                                        Subgroups = gr.Select(x => new LabSubgroup
+                                        {
+                                            Subgroup = x.TargetName,
+                                            SubgroupId = x.TargetId,
+                                            Professor = x.Professor,
+                                            ProfessorId = x.ProfessorId
+                                        }).ToList()
+                                    })
+                                    .ToList();
+                                break;
+                        }
+
+                        return assignment;
+                    })
                     .ToList();
 
-                grupa.GenereazaOrar(disciplineForGroup, 15, toateGrupele);
-            }
+        // Instanțiere grupe cu ID-urile reale din entity (30,31,32 etc.)
+        var orarInfo = new OrarGrupa(30, "I2301(ro)", "disciplinaInformatica");
+        var orarInfoA = new OrarGrupa(31, "IA2301(ro)", "disciplinaInformaticaAplicata");
+        var orarInfoA2 = new OrarGrupa(32, "IA2302(ro)", "disciplinaInformaticaAplicata2");
+
+        var toateGrupele = new List<OrarGrupa> { orarInfo, orarInfoA, orarInfoA2 };
+
+        // Selectăm disciplinele legate de fiecare grupă după ID
+        foreach (var grupa in toateGrupele)
+        {
+            var disciplineForGroup = assignments
+                .Select(a => ProjectForGroup(a, grupa.Id))
+                .Where(a => a != null)
+                .Cast<Disciplina>()
+                .ToList();
+
+            //grupa.Discipline.AddRange(disciplineForGroup);
+            grupa.GenereazaOrar(disciplineForGroup, toateGrupele);
         }
+
+        // Returnăm doar sloturile (cum era înainte)
+        var listDiscipline = new List<SlotOrar>();
+        foreach (var g in toateGrupele)
+            listDiscipline.AddRange(g.Sloturi);
 
         return listDiscipline;
     }
 
+
+    private static Disciplina? ProjectForGroup(Disciplina src, int groupId)
+    {
+        if (src.LessonType == null) return null;
+
+        switch (src.LessonType.ToLower())
+        {
+            case "prelegere":
+                // Dacă prelegerea nu atinge această grupă => ignorăm
+                if (!src.GroupIds.Contains(groupId)) return null;
+
+                bool multiGroup = src.GroupIds.Count > 1;
+
+                if (multiGroup)
+                {
+                    // Prelegere comună (cluster): păstrăm TOATE grupele (nu filtrăm)
+                    return new Disciplina
+                    {
+                        LessonId = src.LessonId,
+                        LessonName = src.LessonName,
+                        LessonType = src.LessonType,
+                        HoursPerWeek = src.HoursPerWeek,
+                        ProfessorId = src.ProfessorId,
+                        Professor = src.Professor,
+                        Groups = new List<string>(src.Groups),
+                        GroupIds = new List<int>(src.GroupIds)
+                    };
+                }
+                else
+                {
+                    // Prelegere pentru o singură grupă: doar dacă e chiar aceasta
+                    return new Disciplina
+                    {
+                        LessonId = src.LessonId,
+                        LessonName = src.LessonName,
+                        LessonType = src.LessonType,
+                        HoursPerWeek = src.HoursPerWeek,
+                        ProfessorId = src.ProfessorId,
+                        Professor = src.Professor,
+                        Groups = new List<string>(src.Groups),
+                        GroupIds = new List<int>(src.GroupIds)
+                    };
+                }
+
+            case "seminar":
+                if (src.GroupId != groupId) return null;
+                return new Disciplina
+                {
+                    LessonId = src.LessonId,
+                    LessonName = src.LessonName,
+                    LessonType = src.LessonType,
+                    HoursPerWeek = src.HoursPerWeek,
+                    ProfessorId = src.ProfessorId,
+                    Professor = src.Professor,
+                    Group = src.Group,
+                    GroupId = src.GroupId
+                };
+
+            case "laborator":
+                // Găsim doar LabGroup-ul relevant
+                var labGroup = src.LabGroups.FirstOrDefault(lg => lg.GroupId == groupId);
+                if (labGroup == null) return null;
+
+                return new Disciplina
+                {
+                    LessonId = src.LessonId,
+                    LessonName = src.LessonName,
+                    LessonType = src.LessonType,
+                    HoursPerWeek = src.HoursPerWeek,
+                    ProfessorId = src.ProfessorId,
+                    Professor = src.Professor,
+                    LabGroups = new List<LabGroup>
+                    {
+                        new LabGroup
+                        {
+                            Group = labGroup.Group,
+                            GroupId = labGroup.GroupId,
+                            Subgroups = labGroup.Subgroups
+                                .Select(sg => new LabSubgroup
+                                {
+                                    Subgroup = sg.Subgroup,
+                                    SubgroupId = sg.SubgroupId,
+                                    Professor = sg.Professor,
+                                    ProfessorId = sg.ProfessorId
+                                })
+                                .ToList()
+                        }
+                    }
+                };
+
+            default:
+                return null;
+        }
+    }
 
 }
 

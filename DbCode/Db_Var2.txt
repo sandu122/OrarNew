@@ -1,0 +1,226 @@
+﻿--drop tabel orart.entity
+create table orart.entity(
+	id serial primary key
+	,name text not null
+	,filt_1 text
+	,filt_2 text
+);
+
+create table orart.cluster_group(
+	id serial primary key 
+	,id_entity int not null
+	,id_parent int  
+	,relation_type text 
+		,constraint cluster_group_fk1 foreign key (id_entity) references orart.entity (id)
+		,constraint cluster_group_fk2 foreign key (id_parent) references orart.entity (id)
+);
+
+create index cluster_group_idx1 on orart.cluster_group(id_entity);
+create index cluster_group_idx2 on orart.cluster_group(id_parent);
+
+
+create table orart.discipline(
+	id serial primary key
+	,id_entity int not null 
+	,id_entity_t int not null --lesson type
+	,cant_p_week int not null
+	,less_lang text
+		,constraint discipline_fk1 foreign key (id_entity) references orart.entity(id)
+		,constraint discipline_fk2 foreign key (id_entity_t) references orart.entity(id)
+);
+
+create index discipline_idx1 on orart.discipline(id_entity);
+create index discipline_idx2 on orart.discipline(id_entity_t);
+
+--drop table orart.prof_lect_cluster;
+create table orart.prof_lect_cluster(
+	id serial primary key 
+	,id_entity_p int not null 
+	,id_entity_l int not null 
+	,id_entity_c int not null 
+		,constraint prof_lect_cluster_fk1 foreign key (id_entity_p) references orart.entity(id)
+		,constraint prof_lect_cluster_fk2 foreign key (id_entity_l) references orart.discipline(id)
+		,constraint prof_lect_cluster_fk3 foreign key (id_entity_c) references orart.entity(id)
+);
+
+create index prof_lect_cluster_idx1 on orart.prof_lect_cluster(id_entity_p);
+create index prof_lect_cluster_idx2 on orart.prof_lect_cluster(id_entity_l);
+create index prof_lect_cluster_idx3 on orart.prof_lect_cluster(id_entity_c);
+
+
+-- Entity
+--Lectii
+insert into orart.entity select 1, 'Fundamentele Programării', 'lectie', '';
+insert into orart.entity select 2, 'Sisteme de operare', 'lectie', '';
+insert into orart.entity select 3, 'HTML si CSS', 'lectie', '';
+insert into orart.entity select 4, 'Algoritmi si structuri de date', 'lectie', '';
+insert into orart.entity select 5, 'Matematica', 'lectie', '';
+
+-- Tipul lectiilor
+insert into orart.entity select 10, 'Prelegere', 'p', '';
+insert into orart.entity select 11,	'Seminar', 's', '';
+insert into orart.entity select 12, 'Laborator', 'l', '';
+
+-- Clusterile
+insert into orart.entity select 15, 'Cluster1', 'cluster', 'cl';
+insert into orart.entity select 16, 'Cluster2', 'cluster', 'cl';
+
+-- Grupele
+insert into orart.entity select 30, 'I2301', 'group', 'ro';
+insert into orart.entity select 31, 'IA2301', 'group', 'ro';
+insert into orart.entity select 32, 'IA2302', 'group', 'ro';
+-- Subgrupele
+insert into orart.entity select 50, 'I2301-1', 'sgroup', '';
+insert into orart.entity select 51, 'I2301-2', 'sgroup', '';
+insert into orart.entity select 52, 'IA2301-1', 'sgroup', '';
+insert into orart.entity select 53, 'IA2301-2', 'sgroup', '';
+insert into orart.entity select 54, 'IA2302-1', 'sgroup', '';
+insert into orart.entity select 55, 'IA2302-2', 'sgroup', '';
+
+-- Profesorii
+insert into orart.entity select 100, 'V. Arnaut', 'prof', '';
+insert into orart.entity select 101, 'A. Donu', 'prof', '';
+insert into orart.entity select 102, 'Cr. Crudu', 'prof', '';
+insert into orart.entity select 103, 'Gr. Sturza', 'prof', '';
+insert into orart.entity select 104, 'E. Seiciuc', 'prof', '';
+insert into orart.entity select 105, 'M. Butnaru', 'prof', '';
+insert into orart.entity select 106, 'A. Prepelita', 'prof', '';
+insert into orart.entity select 107, 'T. Pasa', 'prof', '';
+insert into orart.entity select 108, 'G. Marin', 'prof', '';
+insert into orart.entity select 109, 'N. Carceva', 'prof', '';
+insert into orart.entity select 110, 'L. Novac', 'prof', '';
+insert into orart.entity select 111, 'A. Curmanschi', 'prof', '';
+insert into orart.entity select 112, 'V. Popa', 'prof', '';
+
+
+--Cluster Groups
+--clusters with groups
+insert into orart.cluster_group select 1, 15, null, 'cl-gr';
+insert into orart.cluster_group select 2, 30, 15, 'cl-gr';
+insert into orart.cluster_group select 3, 31, 15, 'cl-gr';
+insert into orart.cluster_group select 4, 32, 15, 'cl-gr';
+
+--groups with sub groups
+insert into orart.cluster_group select 10, 50, 30, 'gr-sb';
+insert into orart.cluster_group select 11, 51, 30, 'gr-sb';
+insert into orart.cluster_group select 12, 52, 31, 'gr-sb';
+insert into orart.cluster_group select 13, 53, 31, 'gr-sb';
+insert into orart.cluster_group select 14, 54, 32, 'gr-sb';
+insert into orart.cluster_group select 15, 55, 32, 'gr-sb';
+
+--Discipline
+	--Fundamentele Programarii
+insert into orart.discipline select 1, 1, 10, 2, 'ro';
+insert into orart.discipline select 2, 1, 12, 2, 'ro';
+insert into orart.discipline select 3, 1, 11, 2, 'ro';
+
+	--Sisteme de operare
+insert into orart.discipline select 4, 2, 10, 2, 'ro';
+insert into orart.discipline select 5, 2, 12, 3, 'ro';
+
+	--HTML si CSS
+insert into orart.discipline select 6, 3, 10, 2, 'ro';
+insert into orart.discipline select 7, 3, 12, 2, 'ro';
+
+	--Algoritmi si structuri de date
+insert into orart.discipline select 8, 4, 10, 2, 'ro';
+insert into orart.discipline select 9, 4, 12, 2, 'ro';
+
+	--Matematica
+insert into orart.discipline select 10, 5, 10, 2, 'ro';
+insert into orart.discipline select 11, 5, 11, 3, 'ro';
+
+
+--Profesori - Lectii - Cluster/Grupe/Subgrupe
+	--Fundamentele Programarii
+insert into orart.prof_lect_cluster select 1, 100, 1, 15;
+insert into orart.prof_lect_cluster select 2, 101, 2, 50;
+insert into orart.prof_lect_cluster select 3, 101, 2, 51;
+insert into orart.prof_lect_cluster select 4, 101, 2, 52;
+insert into orart.prof_lect_cluster select 5, 102, 2, 53;
+insert into orart.prof_lect_cluster select 6, 102, 2, 54;
+insert into orart.prof_lect_cluster select 7, 103, 2, 55;
+insert into orart.prof_lect_cluster select 8, 104, 3, 30;
+insert into orart.prof_lect_cluster select 9, 104, 3, 31;
+insert into orart.prof_lect_cluster select 10, 104, 3, 32;
+
+	--Sisteme de operare
+insert into orart.prof_lect_cluster select 11, 104, 4, 15;
+insert into orart.prof_lect_cluster select 12, 104, 5, 50;
+insert into orart.prof_lect_cluster select 13, 105, 5, 51;
+insert into orart.prof_lect_cluster select 14, 105, 5, 52;
+insert into orart.prof_lect_cluster select 15, 106, 5, 53;
+insert into orart.prof_lect_cluster select 16, 105, 5, 54;
+insert into orart.prof_lect_cluster select 31, 106, 5, 55;
+
+	--HTML si CSS
+insert into orart.prof_lect_cluster select 17, 107, 6, 15;
+insert into orart.prof_lect_cluster select 18, 105, 7, 50;
+insert into orart.prof_lect_cluster select 19, 108, 7, 51;
+insert into orart.prof_lect_cluster select 20, 105, 7, 52;
+insert into orart.prof_lect_cluster select 21, 108, 7, 53;
+insert into orart.prof_lect_cluster select 22, 108, 7, 54;
+insert into orart.prof_lect_cluster select 23, 109, 7, 55;
+
+	--Algoritmi si structuri de date
+insert into orart.prof_lect_cluster select 24, 110, 8, 15;
+insert into orart.prof_lect_cluster select 25, 110, 9, 50;
+insert into orart.prof_lect_cluster select 26, 110, 9, 51;
+insert into orart.prof_lect_cluster select 27, 110, 9, 52;
+insert into orart.prof_lect_cluster select 28, 110, 9, 53;
+insert into orart.prof_lect_cluster select 29, 111, 9, 54;
+insert into orart.prof_lect_cluster select 30, 111, 9, 55;
+
+	--Matematica
+insert into orart.prof_lect_cluster select 32, 112, 10, 30;
+insert into orart.prof_lect_cluster select 33, 112, 11, 30;
+
+create or replace view orart.v_discipline as
+	select d.*
+			,e.name lessonName
+			,e1.name lessonType
+	from orart.discipline d
+		left join orart.entity e on d.id_entity = e.id
+		left join orart.entity e1 on d.id_entity_t = e1.id
+
+create or replace view orart.v_cluster_group as
+	select cg.*
+			,e.name entityName
+			,e1.name parentName
+	from orart.cluster_group cg
+		left join orart.entity e on cg.id_entity = e.id
+		left join orart.entity e1 on cg.id_parent = e1.id
+		
+		
+create or replace view orart.v_prof_lect_cluster as
+	select plc.*
+			,e.name profName
+			,d.lessonName
+			,d.lessonType
+			,d.cant_p_week
+			,cg.entityName
+			,cg.parentName
+	from orart.prof_lect_cluster plc
+		left join orart.entity e on plc.id_entity_p = e.id
+		left join orart.v_discipline d on plc.id_entity_l = d.id
+		left join orart.v_cluster_group cg on plc.id_entity_c = cg.id_entity
+
+select plc.*, d.* from orart.prof_lect_cluster plc 
+	left join orart.discipline d on plc.id_entity_l = d.id
+
+	select * from orart.prof_lect_cluster plc 
+	select * from orart.cluster_group
+
+create or replace view orart.v_prof_lect_cluster_2	
+SELECT plc.id_entity_l   AS LessonId,
+       d.lessonName,
+       d.lessonType,
+       plc.id_entity_p   AS ProfessorId,
+       e.name            AS Professor,
+       d.cant_p_week,
+       cg.entityName     AS TargetName,
+       cg.parentName
+FROM orart.v_prof_lect_cluster plc
+LEFT JOIN orart.entity e ON plc.id_entity_p = e.id
+LEFT JOIN orart.v_discipline d ON plc.id_entity_l = d.id
+LEFT JOIN orart.v_cluster_group cg ON plc.id_entity_c = cg.id_entity;

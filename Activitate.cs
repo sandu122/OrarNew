@@ -1,23 +1,85 @@
 ﻿namespace OrarUniver
 {
+    public enum ActivityFrequency
+    {
+        Weekly,        // apare în fiecare săptămână
+        BiWeeklySplit, // împărțită pe Par / Impar
+        EvenOnly,      // doar săptămâni pare
+        OddOnly        // doar săptămâni impare
+    }
+
     public class Activitate
     {
-        public int Id { get; set; }
-        public int IdEntity { get; set; }
-        public string? Disciplina { get; set; }
-        public TipActivitate Tip { get; set; }
+        public int Id { get; }
+        public int LessonId { get; }
+        public string? LessonName { get; }
 
-        public Activitate(int id, int idEntity, string disciplina, TipActivitate tip)
+        public TipActivitate Tip { get; }
+        public int? ProfessorId { get; }
+        public string? Professor { get; }
+
+        public List<int> GroupIds { get; } = new();
+        public bool IsCommon => GroupIds.Count > 1;
+        public int? SingleGroupId => IsCommon ? null : GroupIds.FirstOrDefault();
+
+        public int? SubgroupId { get; }
+        public string? SubgroupName { get; }   // NOU: pentru afișare (ex: I2301-1)
+
+        //public int HoursPerWeek { get; }
+        public double SlotUnits { get; }
+        public ActivityFrequency Frequency { get; }
+        public string ConflictKey { get; }
+
+        public Activitate(
+            int id,
+            int lessonId,
+            string? lessonName,
+            TipActivitate tip,
+            int? professorId,
+            string? professor,
+            IEnumerable<int> groupIds,
+            //int hoursPerWeek,
+            ActivityFrequency frequency,
+            string? subgroupName = null)
         {
             Id = id;
-            IdEntity = idEntity;
-            Disciplina = disciplina;
+            LessonId = lessonId;
+            LessonName = lessonName;
             Tip = tip;
+            ProfessorId = professorId;
+            Professor = professor;
+            GroupIds = groupIds?.Distinct().ToList() ?? new List<int>();
+            //HoursPerWeek = hoursPerWeek;
+            Frequency = frequency;
+            //SlotUnits = hoursPerWeek / 2.0;
+            SubgroupName = subgroupName;
+            ConflictKey = BuildConflictKey();
         }
 
-        public override string ToString()
+        public Activitate(
+            int id,
+            int lessonId,
+            string? lessonName,
+            TipActivitate tip,
+            int? professorId,
+            string? professor,
+            int groupId,
+            int? subgroupId,
+            //int hoursPerWeek,
+            ActivityFrequency frequency,
+            string? subgroupName = null)
+            : this(id, lessonId, lessonName, tip, professorId, professor, new[] { groupId }/*, hoursPerWeek*/, frequency, subgroupName)
         {
-            return $"{Disciplina} ({Tip})";
+            SubgroupId = subgroupId;
         }
+
+        private string BuildConflictKey()
+        {
+            if (IsCommon)
+                return $"COMMON:{Tip}:{LessonId}:{ProfessorId}";
+            return $"G{SingleGroupId}:{Tip}:{LessonId}:{ProfessorId}:{SubgroupId}";
+        }
+
+        public override string ToString() => $"{LessonName} ({Tip})";
     }
 }

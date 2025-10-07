@@ -4,20 +4,39 @@ namespace OrarUniver
 {
     public class Disciplina
     {
-        public int Id { get; set; }
-        public int IdPlan { get; set; }
-        public int IdEntity { get; set; }
-        public string? Denumire { get; set; }
-        public double? OreCurs { get; set; }
-        public double? OreSeminar { get; set; }
-        public double? OreLaborator { get; set; }
-        public bool EsteComuna { get; set; } = false;
-        public List<Cluster?>? Clusters { get; set; }
+        public int LessonId { get; set; }
+        public string? LessonName { get; set; }
+        public string? LessonType { get; set; }
+        public int ProfessorId { get; set; }
+        public string? Professor { get; set; }
+        public int HoursPerWeek { get; set; }
+        public List<string> Groups { get; set; } = new();// Prelegere: denumirile grupelor (legacy)
+        public List<int> GroupIds { get; set; } = new();// Prelegere: ID‑urile grupelor
+        public string? Group { get; set; }// Seminar: denumirea grupei
+        public int? GroupId { get; set; }// Seminar: ID grupa
+        public List<LabGroup> LabGroups { get; set; } = new();// Laborator
+        public List<LectureCluster> LectureClusters { get; set; } = new();
     }
 
-    public class Cluster
+    public class LabGroup
     {
-        public string? Name { get; set; }
-        public List<string?>? Groups { get; set; }
+        public string? Group { get; set; }
+        public int? GroupId { get; set; }
+        public List<LabSubgroup> Subgroups { get; set; } = new();
     }
+
+    public class LabSubgroup
+    {
+        public string? Subgroup { get; set; }
+        public int? SubgroupId { get; set; }
+        public string? Professor { get; set; }
+        public int ProfessorId { get; set; }
+    }
+
+    public class LectureCluster
+    {
+        public string? ClusterName { get; set; }
+        public List<string> Groups { get; set; } = new();
+    }
+
 }
