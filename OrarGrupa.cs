@@ -126,9 +126,9 @@ public class OrarGrupa
                 case "prelegere":
                     bool esteComuna = disc.GroupIds.Count > 1; // cluster real
                     if (esteComuna)
-                        PlaseazaComunaCuCoeficient(disc, TipActivitate.Curs, perechiCant, toateGrupele);
+                        PlaseazaComunaCuCoeficient(disc, TipActivitate.Prelegere, perechiCant, toateGrupele);
                     else
-                        PlaseazaCuCoeficient(disc, TipActivitate.Curs, perechiCant);
+                        PlaseazaCuCoeficient(disc, TipActivitate.Prelegere, perechiCant);
                     break;
 
                 case "seminar":
@@ -175,7 +175,6 @@ public class OrarGrupa
                 professorId: disc.ProfessorId,
                 professor: disc.Professor,
                 groupIds: new[] { Id }, // această instanță a orarului
-               // hoursPerWeek: 2,        // o pereche = 2 ore (ajustează dacă vrei)
                 frequency: ActivityFrequency.Weekly
             );
 
@@ -193,7 +192,6 @@ public class OrarGrupa
                 professorId: disc.ProfessorId,
                 professor: disc.Professor,
                 groupIds: new[] { Id },
-                //hoursPerWeek: 2, // îl tratăm tot ca o pereche împărțită
                 frequency: ActivityFrequency.BiWeeklySplit
             );
 
@@ -226,7 +224,6 @@ public class OrarGrupa
                 professor: professor,
                 groupId: groupId,
                 subgroupId: subgroupId,
-                //hoursPerWeek: 2,
                 frequency: ActivityFrequency.Weekly,
                 subgroupName: subgroupName);
             PlaseazaActivitate(act, false, null);
@@ -243,7 +240,6 @@ public class OrarGrupa
                 professor: professor,
                 groupId: groupId,
                 subgroupId: subgroupId,
-                //hoursPerWeek: 2,
                 frequency: ActivityFrequency.BiWeeklySplit,
                 subgroupName: subgroupName);
             PlaseazaActivitate(actBi, true, null);
@@ -268,7 +264,6 @@ public class OrarGrupa
                 professorId: disc.ProfessorId,
                 professor: disc.Professor,
                 groupIds: disc.GroupIds,   // toate grupele implicate
-                //hoursPerWeek: 2,
                 frequency: ActivityFrequency.Weekly
             );
             PlaseazaComunaActivitate(act, cuParitate: false, disc.GroupIds, toateGrupele);
@@ -284,7 +279,6 @@ public class OrarGrupa
                 professorId: disc.ProfessorId,
                 professor: disc.Professor,
                 groupIds: disc.GroupIds,
-                //hoursPerWeek: 2,
                 frequency: ActivityFrequency.BiWeeklySplit
             );
             PlaseazaComunaActivitate(actBi, cuParitate: true, disc.GroupIds, toateGrupele);

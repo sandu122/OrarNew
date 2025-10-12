@@ -2,7 +2,7 @@
 
 public enum TipActivitate
 {
-    Curs,
+    Prelegere,
     Seminar,
     Laborator
 }

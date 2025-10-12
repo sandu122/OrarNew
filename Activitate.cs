@@ -24,8 +24,6 @@
 
         public int? SubgroupId { get; }
         public string? SubgroupName { get; }   // NOU: pentru afișare (ex: I2301-1)
-
-        //public int HoursPerWeek { get; }
         public double SlotUnits { get; }
         public ActivityFrequency Frequency { get; }
         public string ConflictKey { get; }
@@ -38,7 +36,6 @@
             int? professorId,
             string? professor,
             IEnumerable<int> groupIds,
-            //int hoursPerWeek,
             ActivityFrequency frequency,
             string? subgroupName = null)
         {
@@ -49,9 +46,7 @@
             ProfessorId = professorId;
             Professor = professor;
             GroupIds = groupIds?.Distinct().ToList() ?? new List<int>();
-            //HoursPerWeek = hoursPerWeek;
             Frequency = frequency;
-            //SlotUnits = hoursPerWeek / 2.0;
             SubgroupName = subgroupName;
             ConflictKey = BuildConflictKey();
         }
@@ -65,10 +60,9 @@
             string? professor,
             int groupId,
             int? subgroupId,
-            //int hoursPerWeek,
             ActivityFrequency frequency,
             string? subgroupName = null)
-            : this(id, lessonId, lessonName, tip, professorId, professor, new[] { groupId }/*, hoursPerWeek*/, frequency, subgroupName)
+            : this(id, lessonId, lessonName, tip, professorId, professor, new[] { groupId }, frequency, subgroupName)
         {
             SubgroupId = subgroupId;
         }
