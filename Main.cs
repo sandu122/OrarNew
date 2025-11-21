@@ -29,7 +29,7 @@ public class Db(NpgsqlConnection dbConnect) : IDb
 
     public IEnumerable<VProfLectCluster> GetProfLectCluster()
     {
-        string strQ = "SELECT * FROM v_prof_lect_cluster_2";
+        string strQ = "SELECT * FROM v_prof_lect_cluster_4";
         var res = _dbConnect.Query<VProfLectCluster>(strQ);
         return res;
     }
@@ -53,7 +53,7 @@ public class Db(NpgsqlConnection dbConnect) : IDb
 
                         switch (g.Key.LessonType?.ToLower())
                         {
-                            case "prelegere":
+                            case "prel.":
                                 var target = g.First();
                                 bool isCluster = string.Equals(target.TargetType, "cluster", StringComparison.OrdinalIgnoreCase);
 
@@ -61,7 +61,7 @@ public class Db(NpgsqlConnection dbConnect) : IDb
                                 {
                                     var groupRows = infoPlanEx
                                         .Where(x =>
-                                            string.Equals(x.TargetType, "group", StringComparison.OrdinalIgnoreCase) &&
+                                            string.Equals(x.TargetType, "grupa", StringComparison.OrdinalIgnoreCase) &&
                                             x.ParentName == target.TargetName)
                                         .Distinct()
                                         .ToList();
@@ -87,19 +87,23 @@ public class Db(NpgsqlConnection dbConnect) : IDb
                                 }
                                 break;
 
-                            case "seminar":
+                            case "sem.":
                                 assignment.Group = g.Select(x => x.TargetName).FirstOrDefault();
                                 assignment.GroupId = g.Select(x => (int?)x.TargetId).FirstOrDefault();
                                 break;
 
-                            case "laborator":
+                            case "lab.":
                                 assignment.LabGroups = g
                                     .GroupBy(x => new { x.ParentName, x.ParentId })
                                     .Select(gr => new LabGroup
                                     {
-                                        Group = gr.Key.ParentName,
-                                        GroupId = gr.Key.ParentId,
-                                        Subgroups = gr.Select(x => new LabSubgroup
+                                        Group = gr.FirstOrDefault(x => x.TargetType == "grupa")?.TargetName
+                                        ?? gr.FirstOrDefault(x => x.TargetType == "subgrupa")?.ParentName
+                                        ?? gr.Key.ParentName,
+                                        GroupId = gr.Select(x => (int?)x.TargetId).FirstOrDefault()  // ia primul TargetId dacă există
+                                                  ?? gr.Key.ParentId                                 // altfel folosește ParentId
+                                                  ?? 0,                                               // fallback final (poți schimba în throw)
+                                        Subgroups = gr.Where(x => x.TargetType == "subgrupa").Select(x => new LabSubgroup
                                         {
                                             Subgroup = x.TargetName,
                                             SubgroupId = x.TargetId,
@@ -116,11 +120,18 @@ public class Db(NpgsqlConnection dbConnect) : IDb
                     .ToList();
 
         // Instanțiere grupe cu ID-urile reale din entity (30,31,32 etc.)
-        var orarInfo = new OrarGrupa(30, "I2301(ro)", "disciplinaInformatica");
-        var orarInfoA = new OrarGrupa(31, "IA2301(ro)", "disciplinaInformaticaAplicata");
-        var orarInfoA2 = new OrarGrupa(32, "IA2302(ro)", "disciplinaInformaticaAplicata2");
+        var IA2304 = new OrarGrupa(56, "IA2304", "Info_Aplicat_4");
+        /*var DJ2301 = new OrarGrupa(61, "DJ2301", "Game_Design_1");
+        var DJ2302 = new OrarGrupa(64, "DJ2302", "Game_Design_2");
+        var DJ2303 = new OrarGrupa(65, "DJ2303", "Game_Design_3");
+        var I2301  = new OrarGrupa(68, "I2301", "Info_1");
+        var IA2301 = new OrarGrupa(69, "IA2301", "Into_Aplicat_1");
+        var IA2302 = new OrarGrupa(70, "IA2302", "Into_Aplicat_2");
+        var I2302  = new OrarGrupa(71, "I2302", "Info_2");
+        var IA2303 = new OrarGrupa(72, "IA2303", "Info_Aplicat_3");*/
 
-        var toateGrupele = new List<OrarGrupa> { orarInfo, orarInfoA, orarInfoA2 };
+
+        var toateGrupele = new List<OrarGrupa> { IA2304/*, DJ2301, DJ2302, DJ2303, I2301, IA2301, IA2302, I2302, IA2303*/ };
 
         // Selectăm disciplinele legate de fiecare grupă după ID
         foreach (var grupa in toateGrupele)
@@ -150,7 +161,7 @@ public class Db(NpgsqlConnection dbConnect) : IDb
 
         switch (src.LessonType.ToLower())
         {
-            case "prelegere":
+            case "prel.":
                 // Dacă prelegerea nu atinge această grupă => ignorăm
                 if (!src.GroupIds.Contains(groupId)) return null;
 
@@ -187,7 +198,7 @@ public class Db(NpgsqlConnection dbConnect) : IDb
                     };
                 }
 
-            case "seminar":
+            case "sem.":
                 if (src.GroupId != groupId) return null;
                 return new Disciplina
                 {
@@ -201,7 +212,7 @@ public class Db(NpgsqlConnection dbConnect) : IDb
                     GroupId = src.GroupId
                 };
 
-            case "laborator":
+            case "lab.":
                 // Găsim doar LabGroup-ul relevant
                 var labGroup = src.LabGroups.FirstOrDefault(lg => lg.GroupId == groupId);
                 if (labGroup == null) return null;

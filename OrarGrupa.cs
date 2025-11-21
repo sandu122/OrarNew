@@ -162,7 +162,7 @@ public class OrarGrupa
 
             switch (disc.LessonType?.ToLower())
             {
-                case "prelegere":
+                case "prel.":
                     bool esteComuna = disc.GroupIds.Count > 1; // cluster real
                     if (esteComuna)
                         PlaseazaComunaCuCoeficient(disc, TipActivitate.Prelegere, perechiCant, toateGrupele);
@@ -170,16 +170,18 @@ public class OrarGrupa
                         PlaseazaCuCoeficient(disc, TipActivitate.Prelegere, perechiCant);
                     break;
 
-                case "seminar":
+                case "sem.":
                     PlaseazaCuCoeficient(disc, TipActivitate.Seminar, perechiCant);
                     break;
 
-                case "laborator":
+                case "lab.":
+                    bool subgrupaPrezent = false;
                     // fiecare subgrupă devine Activitate separată (par/impar logic identic)
                     foreach (var labGroup in disc.LabGroups)
                     {
                         foreach (var sg in labGroup.Subgroups)
                         {
+                            subgrupaPrezent = true;
                             PlaseazaLaboratorSubgrupa(
                                 disc,
                                 labGroup.GroupId ?? 0,
@@ -189,6 +191,12 @@ public class OrarGrupa
                                 sg.Subgroup,
                                 perechiCant);
                         }
+                    }
+
+                    if (!subgrupaPrezent)
+                    {
+                        // fallback: laborator normal, pentru grupa întreagă
+                        PlaseazaCuCoeficient(disc, TipActivitate.Laborator, perechiCant);
                     }
                     break;
             }
