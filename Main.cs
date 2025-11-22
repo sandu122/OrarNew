@@ -100,9 +100,12 @@ public class Db(NpgsqlConnection dbConnect) : IDb
                                         Group = gr.FirstOrDefault(x => x.TargetType == "grupa")?.TargetName
                                         ?? gr.FirstOrDefault(x => x.TargetType == "subgrupa")?.ParentName
                                         ?? gr.Key.ParentName,
-                                        GroupId = gr.Select(x => (int?)x.TargetId).FirstOrDefault()  // ia primul TargetId dacă există
-                                                  ?? gr.Key.ParentId                                 // altfel folosește ParentId
-                                                  ?? 0,                                               // fallback final (poți schimba în throw)
+                                        /*GroupId = gr.Select(x => (int?)x.TargetId).FirstOrDefault()  
+                                                  ?? gr.Key.ParentId                                 
+                                                  ?? 0,  */
+                                        GroupId = gr.FirstOrDefault(x => x.TargetType == "grupa")?.TargetId
+                                        ?? gr.FirstOrDefault(x => x.TargetType == "subgrupa")?.ParentId
+                                        ?? gr.Key.ParentId,
                                         Subgroups = gr.Where(x => x.TargetType == "subgrupa").Select(x => new LabSubgroup
                                         {
                                             Subgroup = x.TargetName,
@@ -120,19 +123,19 @@ public class Db(NpgsqlConnection dbConnect) : IDb
                     .ToList();
 
         // Instanțiere grupe cu ID-urile reale din entity (30,31,32 etc.)
-        var IA2304 = new OrarGrupa(56, "IA2304", "Info_Aplicat_4");
-        /*var DJ2301 = new OrarGrupa(61, "DJ2301", "Game_Design_1");
-        var DJ2302 = new OrarGrupa(64, "DJ2302", "Game_Design_2");
-        var DJ2303 = new OrarGrupa(65, "DJ2303", "Game_Design_3");
-        var I2301  = new OrarGrupa(68, "I2301", "Info_1");
-        var IA2301 = new OrarGrupa(69, "IA2301", "Into_Aplicat_1");
-        var IA2302 = new OrarGrupa(70, "IA2302", "Into_Aplicat_2");
-        var I2302  = new OrarGrupa(71, "I2302", "Info_2");
-        var IA2303 = new OrarGrupa(72, "IA2303", "Info_Aplicat_3");*/
+        /*var IA2304 = new OrarGrupa(56, 1, "IA2304", "Info_Aplicat_4");
+        var DJ2301 = new OrarGrupa(61, 1, "DJ2301", "Game_Design_1");
+        var DJ2302 = new OrarGrupa(64, 1, "DJ2302", "Game_Design_2");
+        var DJ2303 = new OrarGrupa(65, 1, "DJ2303", "Game_Design_3");*/
+        var I2301  = new OrarGrupa(68, 1, "I2301", "Info_1");
+        /*var IA2301 = new OrarGrupa(69, 1, "IA2301", "Into_Aplicat_1");
+        var IA2302 = new OrarGrupa(70, 1, "IA2302", "Into_Aplicat_2");
+        var I2302  = new OrarGrupa(71, 1, "I2302", "Info_2");
+        var IA2303 = new OrarGrupa(72, 1, "IA2303", "Info_Aplicat_3");*/
 
 
-        var toateGrupele = new List<OrarGrupa> { IA2304/*, DJ2301, DJ2302, DJ2303, I2301, IA2301, IA2302, I2302, IA2303*/ };
-
+        //var toateGrupele = new List<OrarGrupa> { IA2304, DJ2301, DJ2302, DJ2303, I2301, IA2301, IA2302, I2302, IA2303 };
+        var toateGrupele = new List<OrarGrupa> { I2301 };
         // Selectăm disciplinele legate de fiecare grupă după ID
         foreach (var grupa in toateGrupele)
         {

@@ -6,13 +6,13 @@
         public string Ziua { get; set; }
         public int Perechea { get; set; }
         public string Disciplina { get; set; }
-
-        // Pentru săptămâni
         public Activitate? ActivitateSaptamanal { get; set; }
         // NOU: al doilea “buzunar” săptămânal (ex. a doua subgrupă la laborator)
         public Activitate? ActivitateSaptamanal2 { get; set; }
         public Activitate? ActivitateImpar { get; set; }
+        public Activitate? ActivitateImpar2 { get; set; }
         public Activitate? ActivitatePar { get; set; }
+        public Activitate? ActivitatePar2 { get; set; }
 
         public SlotOrar(string ziua, int perechea, string disciplina)
         {
@@ -25,9 +25,19 @@
             ActivitateSaptamanal != null ||
             ActivitateSaptamanal2 != null ||
             ActivitatePar != null ||
-            ActivitateImpar != null;
+            ActivitateImpar != null ||
+            ActivitatePar2 != null ||
+            ActivitateImpar2 != null;
 
-        private static string FormatActivitate(Activitate act, string freqLabel)
+        public bool EsteLiber() =>
+            ActivitateSaptamanal == null &&
+            ActivitateSaptamanal2 == null &&
+            ActivitatePar == null &&
+            ActivitatePar2 == null &&
+            ActivitateImpar == null &&
+            ActivitateImpar2 == null;
+
+        /*private static string FormatActivitate(Activitate act, string freqLabel)
         {
             // Subgrupa: afisăm sufixul după '-' (ex: I2301-1 => 1)
             string? shortSub = null;
@@ -42,36 +52,22 @@
             var prof = string.IsNullOrWhiteSpace(act.Professor) ? "" : $" Prof:{act.Professor}";
             var sg = shortSub != null ? $" SG:{shortSub}" : "";
             return $"{act.LessonName} ({act.Tip}, {freqLabel}){prof}{sg}";
-        }
+        }*/
+        private static string FormatActivitate(Activitate act, string freqLabel) =>
+            $"{freqLabel}:{act.LessonName}({act.Tip}){(act.SubgroupName != null ? "-" + act.SubgroupName : "")}";
+
 
         public override string ToString()
         {
-            if (!AreActivitate)
-                return $"{Ziua} P{Perechea}: liber";
-
-            var lines = new List<string>();
-
-            if (ActivitateSaptamanal != null)
-                lines.Add($"{Ziua} P{Perechea}: " + FormatActivitate(ActivitateSaptamanal, "săpt"));
-
-            if (ActivitateSaptamanal2 != null)
-                lines.Add($"{Ziua} P{Perechea}: " + FormatActivitate(ActivitateSaptamanal2, "săpt"));
-
-            if (ActivitateImpar != null)
-                lines.Add($"{Ziua} P{Perechea}: " + FormatActivitate(ActivitateImpar, "impar"));
-
-            if (ActivitatePar != null)
-                lines.Add($"{Ziua} P{Perechea}: " + FormatActivitate(ActivitatePar, "par"));
-
-            return string.Join("\n", lines);
-        }
-
-        public bool EsteLiber()
-        {
-            return ActivitateSaptamanal == null
-                && ActivitateSaptamanal2 == null
-                && ActivitateImpar == null
-                && ActivitatePar == null;
+            var parts = new List<string>();
+            if (ActivitateSaptamanal != null) parts.Add(FormatActivitate(ActivitateSaptamanal, "S"));
+            if (ActivitateSaptamanal2 != null) parts.Add(FormatActivitate(ActivitateSaptamanal2, "S2"));
+            if (ActivitatePar != null) parts.Add(FormatActivitate(ActivitatePar, "P"));
+            if (ActivitatePar2 != null) parts.Add(FormatActivitate(ActivitatePar2, "P2"));
+            if (ActivitateImpar != null) parts.Add(FormatActivitate(ActivitateImpar, "I"));
+            if (ActivitateImpar2 != null) parts.Add(FormatActivitate(ActivitateImpar2, "I2"));
+            var content = parts.Count == 0 ? "(gol)" : string.Join(" | ", parts);
+            return $"{Ziua} #{Perechea}: {content}";
         }
 
         // Dacă vrei și API-ul auxiliar să accepte al doilea laborator săptămânal:
