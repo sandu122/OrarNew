@@ -29,7 +29,7 @@ public class Db(NpgsqlConnection dbConnect) : IDb
 
     public IEnumerable<VProfLectCluster> GetProfLectCluster()
     {
-        string strQ = "SELECT * FROM v_prof_lect_cluster_4";
+        string strQ = "SELECT * FROM v_prof_lect_cluster_1 where lessontype = 'sem.'";
         var res = _dbConnect.Query<VProfLectCluster>(strQ);
         return res;
     }
@@ -123,19 +123,19 @@ public class Db(NpgsqlConnection dbConnect) : IDb
                     .ToList();
 
         // Instanțiere grupe cu ID-urile reale din entity (30,31,32 etc.)
-        /*var IA2304 = new OrarGrupa(56, 1, "IA2304", "Info_Aplicat_4");
+        var IA2304 = new OrarGrupa(56, 1, "IA2304", "Info_Aplicat_4");
         var DJ2301 = new OrarGrupa(61, 1, "DJ2301", "Game_Design_1");
         var DJ2302 = new OrarGrupa(64, 1, "DJ2302", "Game_Design_2");
-        var DJ2303 = new OrarGrupa(65, 1, "DJ2303", "Game_Design_3");*/
+        var DJ2303 = new OrarGrupa(65, 1, "DJ2303", "Game_Design_3");
         var I2301  = new OrarGrupa(68, 1, "I2301", "Info_1");
-        /*var IA2301 = new OrarGrupa(69, 1, "IA2301", "Into_Aplicat_1");
+        var IA2301 = new OrarGrupa(69, 1, "IA2301", "Into_Aplicat_1");
         var IA2302 = new OrarGrupa(70, 1, "IA2302", "Into_Aplicat_2");
         var I2302  = new OrarGrupa(71, 1, "I2302", "Info_2");
-        var IA2303 = new OrarGrupa(72, 1, "IA2303", "Info_Aplicat_3");*/
+        var IA2303 = new OrarGrupa(72, 1, "IA2303", "Info_Aplicat_3");
 
 
-        //var toateGrupele = new List<OrarGrupa> { IA2304, DJ2301, DJ2302, DJ2303, I2301, IA2301, IA2302, I2302, IA2303 };
-        var toateGrupele = new List<OrarGrupa> { I2301 };
+        var toateGrupele = new List<OrarGrupa> { IA2304, DJ2301, DJ2302, DJ2303, I2301, IA2301, IA2302, I2302, IA2303 };
+        //var toateGrupele = new List<OrarGrupa> { I2301 };
         // Selectăm disciplinele legate de fiecare grupă după ID
         foreach (var grupa in toateGrupele)
         {

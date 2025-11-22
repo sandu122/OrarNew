@@ -10,9 +10,9 @@ public class OrarGrupa
 
     private static readonly string[] Zile = { "Luni", "Marti", "Miercuri", "Joi", "Vineri", "Sambata" };
 
-    private const int NrPerechiPeZi = 2;//6;
-    private const int PreferatMaxPerechiPeZi = 2;//4;
-    private const int AbsolutMaxPerechiPeZi = 2;//6;
+    private const int NrPerechiPeZi = 6;
+    private const int PreferatMaxPerechiPeZi = 4;
+    private const int AbsolutMaxPerechiPeZi = 6;
 
     // Config: intervalele permise pe an (start, end)
     private static readonly Dictionary<int, (int start, int end)> YearPairRanges = new()
@@ -75,30 +75,46 @@ public class OrarGrupa
             s.ActivitateImpar != null ||
             s.ActivitateImpar2 != null);
 
+    // Helper: verifică dacă subgrupa candidat există deja în oricare activitate din slot
+    private static bool SlotContineSubgrupa(SlotOrar slot, Activitate act) =>
+        act.SubgroupId != null &&
+        new[]
+        {
+            slot.ActivitateSaptamanal, slot.ActivitateSaptamanal2,
+            slot.ActivitatePar, slot.ActivitatePar2,
+            slot.ActivitateImpar, slot.ActivitateImpar2
+        }.Any(a => a?.SubgroupId == act.SubgroupId);
+
     private bool PoatePlasaInSlot(SlotOrar slot, Activitate activitate, bool cuParitate, out bool vaOcupaSlotNou)
     {
         vaOcupaSlotNou = false;
 
-        // Nou: respinge imediat perechi nepermise pentru anul grupei
         if (!EstePerechePermisa(slot.Perechea))
             return false;
 
         if (cuParitate)
         {
-            if (slot.ActivitateSaptamanal != null || slot.ActivitateSaptamanal2 != null) return false;
+            // Par/impar
+            if (slot.ActivitateSaptamanal != null || slot.ActivitateSaptamanal2 != null)
+            {
+                // Nou: permite par/impar dacă weekly(urile) sunt laborator(e) ale altei subgrupe
+                bool eLabSubgrupa = activitate.Tip == TipActivitate.Laborator && activitate.SubgroupId != null;
+                if (!eLabSubgrupa) return false;
 
-            bool eLabSubgrupa = activitate.Tip == TipActivitate.Laborator && activitate.SubgroupId != null;
+                // Dacă oricare weekly are aceeași subgrupă -> interzis
+                if (SlotContineSubgrupa(slot, activitate)) return false;
+            }
 
-            // primary pockets free?
+            bool eLabSub = activitate.Tip == TipActivitate.Laborator && activitate.SubgroupId != null;
+
             bool parPrimLiber = slot.ActivitatePar == null;
-            bool imparPrimLiber = slot.ActivitateImpar == null;
-
-            // second pockets eligibility (only if primary occupied by DIFFERENT subgroup)
-            bool parSecEligibil = eLabSubgrupa &&
+            bool parSecEligibil = eLabSub &&
                                   slot.ActivitatePar != null &&
                                   slot.ActivitatePar2 == null &&
                                   slot.ActivitatePar.SubgroupId != activitate.SubgroupId;
-            bool imparSecEligibil = eLabSubgrupa &&
+
+            bool imparPrimLiber = slot.ActivitateImpar == null;
+            bool imparSecEligibil = eLabSub &&
                                     slot.ActivitateImpar != null &&
                                     slot.ActivitateImpar2 == null &&
                                     slot.ActivitateImpar.SubgroupId != activitate.SubgroupId;
@@ -125,18 +141,49 @@ public class OrarGrupa
         }
         else
         {
-            // (ramura săptămânal rămâne ca înainte, doar nu uita că slotul "liber" acum include și noile buzunare)
-            if (slot.ActivitateSaptamanal == null
-                && slot.ActivitateSaptamanal2 == null
-                && slot.ActivitatePar == null
-                && slot.ActivitatePar2 == null
-                && slot.ActivitateImpar == null
-                && slot.ActivitateImpar2 == null)
+            // Weekly
+            bool slotGol = slot.ActivitateSaptamanal == null
+                           && slot.ActivitateSaptamanal2 == null
+                           && slot.ActivitatePar == null
+                           && slot.ActivitatePar2 == null
+                           && slot.ActivitateImpar == null
+                           && slot.ActivitateImpar2 == null;
+
+            if (slotGol)
             {
                 vaOcupaSlotNou = true;
-                return true;
+                return true; // buzunar primar weekly
             }
 
+            // Weekly + existent par/impar: permis DOAR pentru laborator subgrupă diferită
+            bool eLabSubgrupa = activitate.Tip == TipActivitate.Laborator && activitate.SubgroupId != null;
+
+            if (eLabSubgrupa)
+            {
+                // Dacă subgrupa există deja în oricare activitate -> refuz
+                if (SlotContineSubgrupa(slot, activitate))
+                    return false;
+
+                // Caz 1: primar weekly liber (nu există ActivitateSaptamanal)
+                if (slot.ActivitateSaptamanal == null)
+                {
+                    vaOcupaSlotNou = false; // slot era deja ocupat de par/impar
+                    return true;
+                }
+
+                // Caz 2: secund weekly (ActivitateSaptamanal2) liber și weekly primar e laborator altă subgrupă
+                if (slot.ActivitateSaptamanal != null
+                    && slot.ActivitateSaptamanal.Tip == TipActivitate.Laborator
+                    && slot.ActivitateSaptamanal2 == null
+                    && slot.ActivitateSaptamanal.SubgroupId != null
+                    && slot.ActivitateSaptamanal.SubgroupId != activitate.SubgroupId)
+                {
+                    vaOcupaSlotNou = false;
+                    return true;
+                }
+            }
+
+            // EXCEPȚIE existentă (al doilea weekly fără par/impar) – menținută
             if (activitate.Tip == TipActivitate.Laborator
                 && slot.ActivitatePar == null
                 && slot.ActivitatePar2 == null
@@ -145,11 +192,9 @@ public class OrarGrupa
                 && slot.ActivitateSaptamanal != null
                 && slot.ActivitateSaptamanal.Tip == TipActivitate.Laborator
                 && slot.ActivitateSaptamanal2 == null
-                && (
-                    (slot.ActivitateSaptamanal.SubgroupId != null && activitate.SubgroupId != null
-                        && slot.ActivitateSaptamanal.SubgroupId != activitate.SubgroupId)
-                    || slot.ActivitateSaptamanal.ConflictKey != activitate.ConflictKey
-                ))
+                && slot.ActivitateSaptamanal.SubgroupId != null
+                && activitate.SubgroupId != null
+                && slot.ActivitateSaptamanal.SubgroupId != activitate.SubgroupId)
             {
                 vaOcupaSlotNou = false;
                 return true;
@@ -165,79 +210,117 @@ public class OrarGrupa
     {
         if (cuParitate)
         {
-            bool eLabSubgrupa = activitate.Tip == TipActivitate.Laborator && activitate.SubgroupId != null;
+            // Par / Impar branch
+            bool eLabSub = activitate.Tip == TipActivitate.Laborator && activitate.SubgroupId != null;
 
-            if (punePePar)
+            // Încercăm exact o dată pe par, apoi o dată pe impar (evităm recursia care poate crea loop)
+            for (int attempt = 0; attempt < 2; attempt++)
             {
-                if (slot.ActivitatePar == null)
+                bool targetPar = punePePar; // prima încercare folosește valoarea curentă
+                if (attempt == 1) targetPar = !punePePar;
+
+                if (targetPar)
                 {
-                    slot.ActivitatePar = activitate;
-                    punePePar = false; // doar la plasare primară
-                    return;
+                    // PAR
+                    if (slot.ActivitatePar == null)
+                    {
+                        slot.ActivitatePar = activitate;
+                        if (attempt == 0) punePePar = false; // schimbăm direcția doar dacă a fost plasare primară la prima încercare
+                        return;
+                    }
+                    if (eLabSub &&
+                        slot.ActivitatePar.SubgroupId != activitate.SubgroupId &&
+                        slot.ActivitatePar2 == null)
+                    {
+                        slot.ActivitatePar2 = activitate; // secundar; nu schimbăm punePePar
+                        return;
+                    }
                 }
-                if (eLabSubgrupa
-                    && slot.ActivitatePar.SubgroupId != activitate.SubgroupId
-                    && slot.ActivitatePar2 == null)
+                else
                 {
-                    slot.ActivitatePar2 = activitate;
-                    return;
+                    // IMPAR
+                    if (slot.ActivitateImpar == null)
+                    {
+                        slot.ActivitateImpar = activitate;
+                        if (attempt == 0) punePePar = true;
+                        return;
+                    }
+                    if (eLabSub &&
+                        slot.ActivitateImpar.SubgroupId != activitate.SubgroupId &&
+                        slot.ActivitateImpar2 == null)
+                    {
+                        slot.ActivitateImpar2 = activitate;
+                        return;
+                    }
                 }
-                // fallback încearcă impar
-                punePePar = false;
-                ExecutaPlasare(slot, activitate, cuParitate);
-                return;
             }
-            else
-            {
-                if (slot.ActivitateImpar == null)
-                {
-                    slot.ActivitateImpar = activitate;
-                    punePePar = true;
-                    return;
-                }
-                if (eLabSubgrupa
-                    && slot.ActivitateImpar.SubgroupId != activitate.SubgroupId
-                    && slot.ActivitateImpar2 == null)
-                {
-                    slot.ActivitateImpar2 = activitate;
-                    return;
-                }
-                // fallback încearcă par
-                punePePar = true;
-                ExecutaPlasare(slot, activitate, cuParitate);
-                return;
-            }
+
+            // Nimic plasat
+            return;
         }
         else
         {
-            // săptămânal (nemodificat față de logică existentă, păstrăm protecția subgrupelor)
-            if (activitate.Tip == TipActivitate.Laborator
-                && slot.ActivitateSaptamanal != null
-                && slot.ActivitateSaptamanal.Tip == TipActivitate.Laborator
-                && slot.ActivitateSaptamanal2 == null
-                && slot.ActivitateSaptamanal.SubgroupId == activitate.SubgroupId
-                && slot.ActivitateSaptamanal.ConflictKey == activitate.ConflictKey)
+            // ===== WEEKLY =====
+            bool eLabSub = activitate.Tip == TipActivitate.Laborator && activitate.SubgroupId != null;
+
+            bool slotGol =
+                slot.ActivitateSaptamanal == null &&
+                slot.ActivitateSaptamanal2 == null &&
+                slot.ActivitatePar == null &&
+                slot.ActivitatePar2 == null &&
+                slot.ActivitateImpar == null &&
+                slot.ActivitateImpar2 == null;
+
+            // 1. Slot complet liber
+            if (slotGol)
+            {
+                slot.ActivitateSaptamanal = activitate;
+                return;
+            }
+
+            // 2. Nu plasăm a doua instanță pentru aceeași subgrupă
+            if (eLabSub &&
+                slot.ActivitateSaptamanal != null &&
+                slot.ActivitateSaptamanal.Tip == TipActivitate.Laborator &&
+                slot.ActivitateSaptamanal.SubgroupId == activitate.SubgroupId)
             {
                 return;
             }
 
-            if (slot.ActivitateSaptamanal == null)
+            // 3. Plasăm weekly primar într‑un slot deja ocupat de par/impar (laborator subgrupă diferită)
+            if (eLabSub &&
+                slot.ActivitateSaptamanal == null &&
+                (slot.ActivitatePar != null || slot.ActivitatePar2 != null ||
+                 slot.ActivitateImpar != null || slot.ActivitateImpar2 != null))
             {
-                slot.ActivitateSaptamanal = activitate;
+                // Verifică să nu existe aceeași subgrupă deja în par/impar
+                bool existaSubgrupa = new[]
+                {
+                    slot.ActivitatePar, slot.ActivitatePar2,
+                    slot.ActivitateImpar, slot.ActivitateImpar2
+                }.Any(a => a?.SubgroupId == activitate.SubgroupId);
+
+                if (!existaSubgrupa)
+                {
+                    slot.ActivitateSaptamanal = activitate;
+                    return;
+                }
             }
-            else if (activitate.Tip == TipActivitate.Laborator
-                     && slot.ActivitateSaptamanal2 == null
-                     && (
-                         (slot.ActivitateSaptamanal.SubgroupId != activitate.SubgroupId)
-                         || slot.ActivitateSaptamanal.ConflictKey != activitate.ConflictKey
-                     ))
+
+            // 4. Weekly secund (Saptamanal2) doar dacă primul weekly e laborator altă subgrupă
+            if (eLabSub &&
+                slot.ActivitateSaptamanal != null &&
+                slot.ActivitateSaptamanal.Tip == TipActivitate.Laborator &&
+                slot.ActivitateSaptamanal2 == null &&
+                slot.ActivitateSaptamanal.SubgroupId != null &&
+                activitate.SubgroupId != null &&
+                slot.ActivitateSaptamanal.SubgroupId != activitate.SubgroupId)
             {
                 slot.ActivitateSaptamanal2 = activitate;
+                return;
             }
-            else
-            {
-                slot.ActivitateSaptamanal ??= activitate;
-            }
+
+            // 5. Nu plasăm nimic în alte cazuri (non-lab într-un slot parțial ocupat)
         }
     }
 
