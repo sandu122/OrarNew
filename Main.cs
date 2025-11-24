@@ -29,7 +29,7 @@ public class Db(NpgsqlConnection dbConnect) : IDb
 
     public IEnumerable<VProfLectCluster> GetProfLectCluster()
     {
-        string strQ = "SELECT * FROM v_prof_lect_cluster_1 where lessontype = 'sem.'";
+        string strQ = "SELECT * FROM v_prof_lect_cluster_1";
         var res = _dbConnect.Query<VProfLectCluster>(strQ);
         return res;
     }
@@ -38,7 +38,7 @@ public class Db(NpgsqlConnection dbConnect) : IDb
     {
         var infoPlanEx = GetProfLectCluster().ToList();
         var assignments = infoPlanEx
-                    .GroupBy(r => new { r.LessonId, r.LessonName, r.LessonType, r.CantPWeek, r.ProfessorId, r.Professor })
+                    .GroupBy(r => new { r.LessonId, r.LessonName, r.LessonType, r.CantPWeek, r.ProfessorId, r.Professor, r.IdEntityC })
                     .Select(g =>
                     {
                         var assignment = new Disciplina
@@ -80,7 +80,7 @@ public class Db(NpgsqlConnection dbConnect) : IDb
                                 {
                                     // este grupă: folosim propriul ID și (dacă dorești) numele părintelui ca afișare
                                     var groupId = target.TargetId;
-                                    var groupName = target.ParentName ?? target.TargetName;
+                                    var groupName = target.TargetName;
 
                                     assignment.Groups = new List<string> { groupName! };
                                     assignment.GroupIds = new List<int> { groupId };
@@ -100,9 +100,6 @@ public class Db(NpgsqlConnection dbConnect) : IDb
                                         Group = gr.FirstOrDefault(x => x.TargetType == "grupa")?.TargetName
                                         ?? gr.FirstOrDefault(x => x.TargetType == "subgrupa")?.ParentName
                                         ?? gr.Key.ParentName,
-                                        /*GroupId = gr.Select(x => (int?)x.TargetId).FirstOrDefault()  
-                                                  ?? gr.Key.ParentId                                 
-                                                  ?? 0,  */
                                         GroupId = gr.FirstOrDefault(x => x.TargetType == "grupa")?.TargetId
                                         ?? gr.FirstOrDefault(x => x.TargetType == "subgrupa")?.ParentId
                                         ?? gr.Key.ParentId,
@@ -135,7 +132,7 @@ public class Db(NpgsqlConnection dbConnect) : IDb
 
 
         var toateGrupele = new List<OrarGrupa> { IA2304, DJ2301, DJ2302, DJ2303, I2301, IA2301, IA2302, I2302, IA2303 };
-        //var toateGrupele = new List<OrarGrupa> { I2301 };
+        //var toateGrupele = new List<OrarGrupa> { IA2304, I2301, I2302, IA2301, IA2302, IA2303 };
         // Selectăm disciplinele legate de fiecare grupă după ID
         foreach (var grupa in toateGrupele)
         {

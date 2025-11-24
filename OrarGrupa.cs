@@ -85,6 +85,10 @@ public class OrarGrupa
             slot.ActivitateImpar, slot.ActivitateImpar2
         }.Any(a => a?.SubgroupId == act.SubgroupId);
 
+    // Helper: verifică dacă weekly ocupă complet slotul (cluster sau grupă întreagă - fără SubgroupId)
+    private static bool OcupaCompletSlotWeekly(Activitate? a) =>
+        a != null && a.SubgroupId == null;
+
     private bool PoatePlasaInSlot(SlotOrar slot, Activitate activitate, bool cuParitate, out bool vaOcupaSlotNou)
     {
         vaOcupaSlotNou = false;
@@ -97,7 +101,10 @@ public class OrarGrupa
             // Par/impar
             if (slot.ActivitateSaptamanal != null || slot.ActivitateSaptamanal2 != null)
             {
-                // Nou: permite par/impar dacă weekly(urile) sunt laborator(e) ale altei subgrupe
+
+                if (OcupaCompletSlotWeekly(slot.ActivitateSaptamanal) || OcupaCompletSlotWeekly(slot.ActivitateSaptamanal2))
+                    return false;
+                //  permite par/impar dacă weekly(urile) sunt laborator(e) ale altei subgrupe
                 bool eLabSubgrupa = activitate.Tip == TipActivitate.Laborator && activitate.SubgroupId != null;
                 if (!eLabSubgrupa) return false;
 
@@ -571,10 +578,13 @@ public class OrarGrupa
                     }
                     else
                     {
+                        // NOU: tratăm și buzunarele secundare parity ca ocupate
                         if (slot.ActivitateSaptamanal != null ||
                             slot.ActivitateSaptamanal2 != null ||
                             slot.ActivitatePar != null ||
-                            slot.ActivitateImpar != null)
+                            slot.ActivitatePar2 != null ||
+                            slot.ActivitateImpar != null ||
+                            slot.ActivitateImpar2 != null)
                         {
                             ok = false;
                             break;

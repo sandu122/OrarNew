@@ -37,22 +37,6 @@
             ActivitateImpar == null &&
             ActivitateImpar2 == null;
 
-        /*private static string FormatActivitate(Activitate act, string freqLabel)
-        {
-            // Subgrupa: afisăm sufixul după '-' (ex: I2301-1 => 1)
-            string? shortSub = null;
-            if (!string.IsNullOrWhiteSpace(act.SubgroupName))
-            {
-                var idx = act.SubgroupName.LastIndexOf('-');
-                shortSub = idx >= 0 && idx < act.SubgroupName.Length - 1
-                    ? act.SubgroupName[(idx + 1)..]
-                    : act.SubgroupName;
-            }
-
-            var prof = string.IsNullOrWhiteSpace(act.Professor) ? "" : $" Prof:{act.Professor}";
-            var sg = shortSub != null ? $" SG:{shortSub}" : "";
-            return $"{act.LessonName} ({act.Tip}, {freqLabel}){prof}{sg}";
-        }*/
         private static string FormatActivitate(Activitate act, string freqLabel) =>
             $"{freqLabel}:{act.LessonName}({act.Tip}){(act.SubgroupName != null ? "-" + act.SubgroupName : "")}";
 
