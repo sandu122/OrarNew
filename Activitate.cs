@@ -67,11 +67,28 @@
             SubgroupId = subgroupId;
         }
 
-        private string BuildConflictKey()
+        /*private string BuildConflictKey()
         {
             if (IsCommon)
                 return $"COMMON:{Tip}:{LessonId}:{ProfessorId}";
             return $"G{SingleGroupId}:{Tip}:{LessonId}:{ProfessorId}:{SubgroupId}";
+        }*/
+        private string BuildConflictKey()
+        {
+            var groupsPart = string.Join(",", GroupIds);
+            var freqPart = Frequency switch
+            {
+                ActivityFrequency.Weekly => "W",
+                ActivityFrequency.BiWeeklySplit => "BI",
+                ActivityFrequency.EvenOnly => "EV",
+                ActivityFrequency.OddOnly => "OD",
+                _ => "X"
+            };
+            var subgroupPart = SubgroupId?.ToString() ?? "0";
+
+            if (IsCommon)
+                return $"COMMON:{LessonId}:{Tip}:{ProfessorId}:{freqPart}:{groupsPart}";
+            return $"G{SingleGroupId}:{LessonId}:{Tip}:{ProfessorId}:{freqPart}:{subgroupPart}";
         }
 
         public override string ToString() => $"{LessonName} ({Tip})";

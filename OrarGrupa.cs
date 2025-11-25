@@ -19,7 +19,7 @@ public class OrarGrupa
     {
         { 1, (1, 4) },
         { 2, (1, 4) },
-        { 3, (4, 6) }
+        { 3, (3, 6) }
     };
 
     private readonly int _startPair;
@@ -331,8 +331,6 @@ public class OrarGrupa
         }
     }
 
-
-
     private bool CreeazaGolIzolat(string zi, int pereche)
     {
         var sloturiZi = Sloturi.Where(s => s.Ziua == zi).OrderBy(s => s.Perechea).ToList();
@@ -345,6 +343,7 @@ public class OrarGrupa
         }
         return false;
     }
+
 
     // =================== PUNCT PRINCIPAL: folosim noua structură Disciplina + Activitate ===================
     public void GenereazaOrar(List<Disciplina> discipline, List<OrarGrupa> toateGrupele)
@@ -535,10 +534,9 @@ public class OrarGrupa
         // Evităm duplicarea: dacă oricare grupă are deja această activitate (după ConflictKey)
         bool already = grupeTarget.Any(g =>
             g.Sloturi.Any(s =>
-                (s.ActivitateSaptamanal != null && s.ActivitateSaptamanal.ConflictKey == activitate.ConflictKey) ||
-                (s.ActivitateSaptamanal2 != null && s.ActivitateSaptamanal2.ConflictKey == activitate.ConflictKey) ||
-                (s.ActivitatePar != null && s.ActivitatePar.ConflictKey == activitate.ConflictKey) ||
-                (s.ActivitateImpar != null && s.ActivitateImpar.ConflictKey == activitate.ConflictKey)
+                (s.ActivitateSaptamanal != null && s.ActivitateSaptamanal.ConflictKey == activitate.ConflictKey && s.ActivitateSaptamanal.Frequency == activitate.Frequency) ||
+                (s.ActivitatePar != null && s.ActivitatePar.ConflictKey == activitate.ConflictKey && s.ActivitatePar.Frequency == activitate.Frequency) ||
+                (s.ActivitateImpar != null && s.ActivitateImpar.ConflictKey == activitate.ConflictKey && s.ActivitateImpar.Frequency == activitate.Frequency)
             ));
         if (already) return;
 
