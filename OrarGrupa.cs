@@ -50,12 +50,12 @@ public class OrarGrupa
                 Sloturi.Add(new SlotOrar(zi, p, name));
         }
     }
-    //
+
     private bool EstePerechePermisa(int pereche) => pereche >= _startPair && pereche <= _endPair;
 
     private IEnumerable<SlotOrar> SloturiPermisePeZi(string zi) =>
         Sloturi.Where(s => s.Ziua == zi && EstePerechePermisa(s.Perechea));
-    //
+
     private int NumarPerechiZi(string ziua) =>
         Sloturi.Where(s => s.Ziua == ziua).Count(s => s.AreActivitate);
 
@@ -89,12 +89,172 @@ public class OrarGrupa
     private static bool OcupaCompletSlotWeekly(Activitate? a) =>
         a != null && a.SubgroupId == null;
 
+    // Helpers noi pentru prelegeri
+    private static bool SlotAreLectieSubgrupa(SlotOrar s) =>
+        (s.ActivitateSaptamanal?.Tip == TipActivitate.Prelegere && s.ActivitateSaptamanal.SubgroupId != null) ||
+        (s.ActivitateSaptamanal2?.Tip == TipActivitate.Prelegere && s.ActivitateSaptamanal2.SubgroupId != null) ||
+        (s.ActivitatePar?.Tip == TipActivitate.Prelegere && s.ActivitatePar.SubgroupId != null) ||
+        (s.ActivitatePar2?.Tip == TipActivitate.Prelegere && s.ActivitatePar2.SubgroupId != null) ||
+        (s.ActivitateImpar?.Tip == TipActivitate.Prelegere && s.ActivitateImpar.SubgroupId != null) ||
+        (s.ActivitateImpar2?.Tip == TipActivitate.Prelegere && s.ActivitateImpar2.SubgroupId != null);
+
+    private static bool SlotAreLectieGrupa(SlotOrar s) =>
+        (s.ActivitateSaptamanal?.Tip == TipActivitate.Prelegere && s.ActivitateSaptamanal.SubgroupId == null) ||
+        (s.ActivitateSaptamanal2?.Tip == TipActivitate.Prelegere && s.ActivitateSaptamanal2.SubgroupId == null) ||
+        (s.ActivitatePar?.Tip == TipActivitate.Prelegere && s.ActivitatePar.SubgroupId == null) ||
+        (s.ActivitatePar2?.Tip == TipActivitate.Prelegere && s.ActivitatePar2.SubgroupId == null) ||
+        (s.ActivitateImpar?.Tip == TipActivitate.Prelegere && s.ActivitateImpar.SubgroupId == null) ||
+        (s.ActivitateImpar2?.Tip == TipActivitate.Prelegere && s.ActivitateImpar2.SubgroupId == null);
+
+    private static bool SlotAreOriceLectie(SlotOrar s) => SlotAreLectieGrupa(s) || SlotAreLectieSubgrupa(s);
+
+
     private bool PoatePlasaInSlot(SlotOrar slot, Activitate activitate, bool cuParitate, out bool vaOcupaSlotNou)
     {
         vaOcupaSlotNou = false;
 
         if (!EstePerechePermisa(slot.Perechea))
             return false;
+
+        // ------ REGULI SPECIFICE PRELEGERE ------
+        if (activitate.Tip == TipActivitate.Prelegere)
+        {
+            bool eSub = activitate.SubgroupId != null;
+
+            if (!cuParitate)
+            {
+                // Weekly prelegere
+                if (eSub)
+                {
+                    // Subgrupă weekly
+                    // Nu permitem dacă există prelegere de grupă sau aceeași subgrupă deja
+                    if (SlotAreLectieGrupa(slot)) return false;
+                    if (SlotContineSubgrupa(slot, activitate)) return false;
+
+                    // Permitem dacă slotul e complet gol -> ocupă slot nou
+                    bool slotGolPrelegere = !SlotAreOriceLectie(slot) &&
+                                            slot.ActivitateSaptamanal == null &&
+                                            slot.ActivitateSaptamanal2 == null &&
+                                            slot.ActivitatePar == null &&
+                                            slot.ActivitatePar2 == null &&
+                                            slot.ActivitateImpar == null &&
+                                            slot.ActivitateImpar2 == null;
+
+                    if (slotGolPrelegere)
+                    {
+                        vaOcupaSlotNou = true;
+                        return true;
+                    }
+
+                    // Dacă există deja o altă prelegere weekly de subgrupă (Saptamanal) putem pune a doua (Saptamanal2) dacă e altă subgrupă
+                    if (slot.ActivitateSaptamanal != null &&
+                        slot.ActivitateSaptamanal.Tip == TipActivitate.Prelegere &&
+                        slot.ActivitateSaptamanal.SubgroupId != null &&
+                        slot.ActivitateSaptamanal2 == null &&
+                        slot.ActivitateSaptamanal.SubgroupId != activitate.SubgroupId)
+                    {
+                        vaOcupaSlotNou = false;
+                        return true;
+                    }
+
+                    // Nu permitem colocare cu par/impar de grupă
+                    if (SlotAreLectieGrupa(slot)) return false;
+
+                    // Permitem dacă există doar par/impar de alte subgrupe și buzunar weekly primar liber
+                    if (slot.ActivitateSaptamanal == null &&
+                        (slot.ActivitatePar != null || slot.ActivitateImpar != null))
+                    {
+                        // verif să nu existe aceeași subgrupă deja
+                        if (!SlotContineSubgrupa(slot, activitate))
+                        {
+                            vaOcupaSlotNou = false;
+                            return true;
+                        }
+                    }
+
+                    return false;
+                }
+                else
+                {
+                    // Prelegere de grupă weekly
+                    // Blochează dacă există orice subgrupă (weekly sau parity)
+                    if (SlotAreLectieSubgrupa(slot)) return false;
+
+                    // Necesită slot complet gol (fără alte prelegeri/laboratoare)
+                    bool slotGol = slot.ActivitateSaptamanal == null &&
+                                   slot.ActivitateSaptamanal2 == null &&
+                                   slot.ActivitatePar == null &&
+                                   slot.ActivitatePar2 == null &&
+                                   slot.ActivitateImpar == null &&
+                                   slot.ActivitateImpar2 == null;
+
+                    if (slotGol)
+                    {
+                        vaOcupaSlotNou = true;
+                        return true;
+                    }
+                    return false;
+                }
+            }
+            else
+            {
+                // Paritate (BiWeeklySplit) prelegere
+                if (eSub)
+                {
+                    // Paritate pentru subgrupă
+                    // Nu permitem dacă există prelegere de grupă weekly sau parity
+                    if (SlotAreLectieGrupa(slot)) return false;
+                    // Nu permitem dacă buzunarul (par/impar) conține deja aceeași subgrupă
+                    if (punePePar)
+                    {
+                        if (slot.ActivitatePar?.Tip == TipActivitate.Prelegere &&
+                            slot.ActivitatePar.SubgroupId == activitate.SubgroupId) return false;
+                        if (slot.ActivitatePar2?.Tip == TipActivitate.Prelegere &&
+                            slot.ActivitatePar2.SubgroupId == activitate.SubgroupId) return false;
+                    }
+                    else
+                    {
+                        if (slot.ActivitateImpar?.Tip == TipActivitate.Prelegere &&
+                            slot.ActivitateImpar.SubgroupId == activitate.SubgroupId) return false;
+                        if (slot.ActivitateImpar2?.Tip == TipActivitate.Prelegere &&
+                            slot.ActivitateImpar2.SubgroupId == activitate.SubgroupId) return false;
+                    }
+
+                    // Permitem dacă buzunarul primar/par secund sau impar primar/secund este liber și nu conflict de subgrupă
+                    bool parPrimLiber = punePePar && slot.ActivitatePar == null;
+                    bool parSecLiber = punePePar && slot.ActivitatePar != null && slot.ActivitatePar2 == null &&
+                                       slot.ActivitatePar.SubgroupId != activitate.SubgroupId;
+                    bool imparPrimLiber = !punePePar && slot.ActivitateImpar == null;
+                    bool imparSecLiber = !punePePar && slot.ActivitateImpar != null && slot.ActivitateImpar2 == null &&
+                                         slot.ActivitateImpar.SubgroupId != activitate.SubgroupId;
+
+                    if (parPrimLiber || parSecLiber || imparPrimLiber || imparSecLiber)
+                    {
+                        vaOcupaSlotNou = slot.EsteLiber();
+                        return true;
+                    }
+
+                    return false;
+                }
+                else
+                {
+                    // Paritate de grupă
+                    // Nu permitem dacă există orice prelegere (weekly subgrupă sau grupă)
+                    if (SlotAreOriceLectie(slot)) return false;
+
+                    // Necesită buzunar par/impar liber (cel puțin unul)
+                    bool parLiber = slot.ActivitatePar == null;
+                    bool imparLiber = slot.ActivitateImpar == null;
+
+                    if (parLiber || imparLiber)
+                    {
+                        vaOcupaSlotNou = slot.EsteLiber();
+                        return true;
+                    }
+                    return false;
+                }
+            }
+        }
 
         if (cuParitate)
         {
