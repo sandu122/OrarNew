@@ -18,6 +18,10 @@
         public int? ProfessorId { get; }
         public string? Professor { get; }
 
+        // room info
+        public int? RoomId { get; set; }
+        public string? RoomName { get; set; }
+
         public List<int> GroupIds { get; } = new();
         public bool IsCommon => GroupIds.Count > 1;
         public int? SingleGroupId => IsCommon ? null : GroupIds.FirstOrDefault();
@@ -35,6 +39,8 @@
             TipActivitate tip,
             int? professorId,
             string? professor,
+            int? roomId,
+            string? roomName,
             IEnumerable<int> groupIds,
             ActivityFrequency frequency,
             string? subgroupName = null)
@@ -43,8 +49,13 @@
             LessonId = lessonId;
             LessonName = lessonName;
             Tip = tip;
+
             ProfessorId = professorId;
             Professor = professor;
+
+            RoomId = roomId;
+            RoomName = roomName;
+
             GroupIds = groupIds?.Distinct().ToList() ?? new List<int>();
             Frequency = frequency;
             SubgroupName = subgroupName;
@@ -58,21 +69,17 @@
             TipActivitate tip,
             int? professorId,
             string? professor,
+            int? roomId,
+            string? roomName,
             int groupId,
             int? subgroupId,
             ActivityFrequency frequency,
             string? subgroupName = null)
-            : this(id, lessonId, lessonName, tip, professorId, professor, new[] { groupId }, frequency, subgroupName)
+            : this(id, lessonId, lessonName, tip, professorId, professor, roomId, roomName, new[] { groupId }, frequency, subgroupName)
         {
             SubgroupId = subgroupId;
         }
 
-        /*private string BuildConflictKey()
-        {
-            if (IsCommon)
-                return $"COMMON:{Tip}:{LessonId}:{ProfessorId}";
-            return $"G{SingleGroupId}:{Tip}:{LessonId}:{ProfessorId}:{SubgroupId}";
-        }*/
         private string BuildConflictKey()
         {
             var groupsPart = string.Join(",", GroupIds);
@@ -88,6 +95,7 @@
 
             if (IsCommon)
                 return $"COMMON:{LessonId}:{Tip}:{ProfessorId}:{freqPart}:{groupsPart}";
+
             return $"G{SingleGroupId}:{LessonId}:{Tip}:{ProfessorId}:{freqPart}:{subgroupPart}";
         }
 

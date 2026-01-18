@@ -6,8 +6,8 @@ namespace OrarUniver
     {
         public int Id { get; set; }
         public string? Name { get; set; }
-        public string? Filt { get; set; }
         public string? Filt1 { get; set; }
+        public string? Filt2 { get; set; }
     }
 
     public class Discipline

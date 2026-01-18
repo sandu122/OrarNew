@@ -1,222 +1,567 @@
-﻿--drop table orarNew.entity
-create table orarnew.entity (
+﻿--drop tabel orart.entity
+create table orart.entity(
 	id serial primary key
-	,name text not null 
-	,filt text
-	,filt1 text
+	,name text not null
+	,filt_1 text
+	,filt_2 text
 );
 
---drop table orarNew.GCluster
-create table orarnew.gcluster(
-	id serial primary key
-	,id_cluster int not null
-	,id_group int not null
-		,constraint gcluster_fk1 FOREIGN key (id_cluster) references orarnew.entity(id)
-		,constraint gcluster_fk2 FOREIGN key (id_group) references orarnew.entity(id)
-);
-
-create index gcluster_idx1 on orarnew.gcluster(id_cluster);
-create index gcluster_idx2 on orarnew.gcluster(id_group);
-
---drop table orarnew.std_plan_m
-create table orarnew.std_plan_m(
-	id serial primary key
-	,id_plan text not null
-	,plan_name text
-);
-
-
---drop table orarnew.std_plan_d
-create table orarnew.std_plan_d(
-	id serial primary key
-	,id_plan int not null
+create table orart.cluster_group(
+	id serial primary key 
 	,id_entity int not null
-	,id_cluster int
-	,seminar_cant int not null
-	,laborator_cant int not null
-		,constraint std_plan_d_fk1 FOREIGN key (id_plan) references orarnew.std_plan_m(id)
-		,constraint std_plan_d_fk2 FOREIGN key (id_entity) references orarnew.entity(id)
+	,id_parent int  
+	,relation_type text 
+		,constraint cluster_group_fk1 foreign key (id_entity) references orart.entity (id)
+		,constraint cluster_group_fk2 foreign key (id_parent) references orart.entity (id)
 );
 
-create index std_plan_d_idx1 on orarnew.std_plan_d(id_plan);
-create index std_plan_d_idx2 on orarnew.std_plan_d(id_entity);
+create index cluster_group_idx1 on orart.cluster_group(id_entity);
+create index cluster_group_idx2 on orart.cluster_group(id_parent);
 
 
---drop table orarnew.std_plan_w
-create table orarnew.std_plan_w(
+create table orart.discipline(
 	id serial primary key
-	,id_plan int not null
-	,id_object int not null
-	,semestru_p int not null
-	,nr_wweeks int not null
-		,constraint std_plan_w_fk1 foreign key(id_object) references orarnew.std_plan_d(id)
-		,constraint std_plan_w_fk2 foreign key (id_plan) references orarnew.std_plan_m(id)
+	,id_entity int not null 
+	,id_entity_t int not null --lesson type
+	,cant_p_week int not null
+	,date_start date
+	,date_stop date
+		,constraint discipline_fk1 foreign key (id_entity) references orart.entity(id)
+		,constraint discipline_fk2 foreign key (id_entity_t) references orart.entity(id)
+);
+CREATE UNIQUE INDEX uniq_discipline
+ON orart.discipline(id_entity, id_entity_t, cant_p_week);
+create index discipline_idx1 on orart.discipline(id_entity);
+create index discipline_idx2 on orart.discipline(id_entity_t);
+
+--drop table orart.prof_lect_cluster;
+create table orart.prof_lect_cluster(
+	id serial primary key 
+	,id_entity_p int not null 
+	,id_entity_l int not null 
+	,id_entity_c int not null
+	,date_start date
+	,date_stop date
+		,constraint prof_lect_cluster_fk1 foreign key (id_entity_p) references orart.entity(id)
+		,constraint prof_lect_cluster_fk2 foreign key (id_entity_l) references orart.discipline(id)
+		,constraint prof_lect_cluster_fk3 foreign key (id_entity_c) references orart.entity(id)
 );
 
-create index std_plan_w_idx1 on orarnew.std_plan_w(id_plan);
+create index prof_lect_cluster_idx1 on orart.prof_lect_cluster(id_entity_p);
+create index prof_lect_cluster_idx2 on orart.prof_lect_cluster(id_entity_l);
+create index prof_lect_cluster_idx3 on orart.prof_lect_cluster(id_entity_c);
+CREATE UNIQUE INDEX uniq_prof_lect_cluster
+ON orart.prof_lect_cluster(id_entity_p, id_entity_l, id_entity_c, date_start, date_stop);
 
 
---drop table orarnew.gcurricula
-create table orarnew.gcurricula (
-	id serial primary key
-	,id_group int not null
-	,id_curricula int not null
-		,constraint gcurricula_fk1 FOREIGN KEY (id_group) references orarnew.entity(id)
-		,constraint gcurricula_fk2 FOREIGN KEY (id_curricula) references orarnew.std_plan_m(id)
+
+
+create table orart.temp_table (
+	id_obj int,
+	obj_name text,
+	lesson_count text,
+	id_type int,
+	lesson_type text,
+	id_cluster int,
+	id_group_1 int,
+	id_group_2  int,
+	id_group_3 int,
+	group_name text,
+	id_teacher int,
+	teacher_name text
 );
 
-create index gcurricula_idx1 on orarnew.gcurricula(id_group);
-create index gcurricula_idx2 on orarnew.gcurricula(id_curricula);
-
-create table orarnew.cluster_plan_connection (
-	id serial primary key
-	,id_lesson_name int not null
-	,id_cluster int not null
-		,constraint cluster_plan_connection_fk1 foreign key (id_lesson_name) references orarnew.entity(id)
-		,constraint cluster_plan_connection_fk2 foreign key (id_cluster) references orarnew.entity(id)
-);
-
-create index cluster_plan_connection_idx1 on orarnew.cluster_plan_connection(id_lesson_name);
-create index cluster_plan_connection_idx2 on orarnew.cluster_plan_connection(id_cluster);
-
-----------------------------------------------------------------------------
---Entity
---Obiecte de program / cursri
-insert into orarnew.entity select 1, 'Fundamentele Programarii', 'obiect', 'comun';
-insert into orarnew.entity select 2, 'Sisteme de Operare', 'obiect', 'comun';
-insert into orarnew.entity select 3, 'HTML si CSS', 'obiect', '';
-insert into orarnew.entity select 4, 'Securitatea Cibernetica', 'obiect', '';
-insert into orarnew.entity select 5, 'Matematica', 'obiect', '';
-insert into orarnew.entity select 6, 'Limba Straina', 'obiect', '';
-insert into orarnew.entity select 7, 'Edicatia Fizica', 'obiect', '';
-
---Grupe
-insert into orarnew.entity select 50, 'I2301(ro)', 'ro', '';
-insert into orarnew.entity select 51, 'IA2301(ro)', 'ro', '';
-insert into orarnew.entity select 52, 'I2301(ru)', 'ru', '';
-insert into orarnew.entity select 53, 'IA2301(ru)', 'ru', '';
-
---Clusters
-insert into orarnew.entity select 70, 'Group1', 'cluster';
-insert into orarnew.entity select 71, 'Group2', 'cluster';
-
---std plan m/d
-insert into orarnew.std_plan_m select 1, '0613.4', 'Informatica';
-insert into orarnew.std_plan_m select 2, '0613.5', 'Informatica Aplicata';
-
-insert into orarnew.std_plan_d select 1, 1, 1, 30, 30, 30;
-insert into orarnew.std_plan_d select 2, 1, 2, 30, 0, 30;
-insert into orarnew.std_plan_d select 3, 1, 3, 30, 0, 30;
-insert into orarnew.std_plan_d select 4, 1, 4, 30, 0, 30;
-insert into orarnew.std_plan_d select 5, 1, 5, 30, 46, 0;
-insert into orarnew.std_plan_d select 6, 1, 6, 0, 47, 0;
-insert into orarnew.std_plan_d select 7, 1, 7, 0, 0, 30;
-
-insert into orarnew.std_plan_d select 8, 2, 1, 30, 30, 30;
-insert into orarnew.std_plan_d select 9, 2, 2, 30, 0, 30;
-insert into orarnew.std_plan_d select 10, 2, 3, 30, 0, 30;
-insert into orarnew.std_plan_d select 11, 2, 4, 30, 0, 30;
-insert into orarnew.std_plan_d select 12, 2, 5, 30, 46, 0;
-insert into orarnew.std_plan_d select 13, 2, 6, 0, 47, 0;
-insert into orarnew.std_plan_d select 14, 2, 7, 0, 0, 30;
-
-insert into orarnew.cluster_plan_connection select 1, 1, 70;
-insert into orarnew.cluster_plan_connection select 2, 2, 70;
-insert into orarnew.cluster_plan_connection select 3, 1, 71;
-insert into orarnew.cluster_plan_connection select 4, 2, 71;
+------------------------------------------------------
+create or replace procedure orart.test_conversion()
+language plpgsql
+as $$
+declare
+	rec record;
+	new_obj_id INT;
+	new_teacher_id int;
 
 
---std_plan_w
-insert into orarnew.std_plan_w select 1, 1, 1, 15;
-insert into orarnew.std_plan_w select 2, 1, 2, 13;
-insert into orarnew.std_plan_w select 3, 1, 3, 15;
-insert into orarnew.std_plan_w select 4, 1, 4, 13;
-insert into orarnew.std_plan_w select 5, 1, 5, 15;
-insert into orarnew.std_plan_w select 6, 1, 6, 7;
-insert into orarnew.std_plan_w select 7, 2, 1, 15;
-insert into orarnew.std_plan_w select 8, 2, 2, 13;
-insert into orarnew.std_plan_w select 9, 2, 3, 15;
-insert into orarnew.std_plan_w select 10, 2, 4, 13;
-insert into orarnew.std_plan_w select 11, 2, 5, 15;
-insert into orarnew.std_plan_w select 12, 2, 6, 7;
+    grp_list TEXT[];
+    grp_name TEXT;
+    grp_id INT;
+    grp1_id INT;
+    grp2_id INT;
+    grp3_id INT;
 
---gcurricula
-insert into orarnew.gcurricula select 1, 50, 1;
-insert into orarnew.gcurricula select 2, 51, 2;
-insert into orarnew.gcurricula select 3, 52, 1;
-insert into orarnew.gcurricula select 4, 53, 2;
+begin
+	update orart.temp_table set id_obj = (select id from orart.entity where name = trim(obj_name)),
+								id_type = (select id from orart.entity where name = lesson_type),
+								id_teacher = (select id from orart.entity where name = teacher_name);
+	--
+	for rec in 
+		select distinct obj_name
+		from orart.temp_table where id_obj is null
+	loop 
+		insert into orart.entity(name, filt_1) values (trim(rec.obj_name), 'lectie') returning id into new_obj_id; 
+		UPDATE orart.temp_table
+        SET id_obj = new_obj_id
+        WHERE obj_name = rec.obj_name; 
+	end loop;
+	--
+	for rec in
+		select distinct teacher_name
+		from orart.temp_table where id_teacher is null
+	loop
+		insert into orart.entity(name, filt_1) values (trim(rec.teacher_name), 'prof') returning id into new_teacher_id;
+		update orart.temp_table
+		set id_teacher = new_teacher_id
+		where teacher_name = rec.teacher_name;
+	end loop;
 
---gcluster
-insert into orarnew.gcluster select 1, 70, 50;
-insert into orarnew.gcluster select 2, 70, 51;
-insert into orarnew.gcluster select 3, 71, 52;
-insert into orarnew.gcluster select 4, 71, 53;
+    -- Grupe (dinamic până la 3 per rând)
+    FOR rec IN
+        SELECT obj_name, group_name
+        FROM orart.temp_table
+        WHERE group_name IS NOT NULL
+    LOOP
+        grp1_id := NULL;
+        grp2_id := NULL;
+        grp3_id := NULL;
 
-select * from orarnew.gcluster
+        -- split doar după virgulă; spațiile se curăță cu trim
+        grp_list := string_to_array(rec.group_name, ',');
+
+		-- grupă 1
+		IF array_length(grp_list, 1) >= 1 THEN
+    		grp_name := trim(grp_list[1]);
+    		SELECT id INTO grp_id FROM orart.entity WHERE name = grp_name;
+
+    		IF grp_id IS NULL THEN
+        	IF grp_name LIKE '%-%' THEN
+            	INSERT INTO orart.entity(name, filt_1)
+            	VALUES (grp_name, 'subgrupa')
+            	RETURNING id INTO grp_id;
+        	ELSE
+            	INSERT INTO orart.entity(name, filt_1)
+            	VALUES (grp_name, 'grupa')
+            	RETURNING id INTO grp_id;
+        	END IF;
+    	END IF;
+
+    grp1_id := grp_id;
+END IF;
+
+        -- grupă 2
+        IF array_length(grp_list, 1) >= 2 THEN
+            grp_name := trim(grp_list[2]);
+            SELECT id INTO grp_id FROM orart.entity WHERE name = grp_name;
+            IF grp_id IS NULL THEN
+                INSERT INTO orart.entity(name, filt_1)
+                VALUES (grp_name, 'grupa')
+                RETURNING id INTO grp_id;
+            END IF;
+            grp2_id := grp_id;
+        END IF;
+
+        -- grupă 3
+        IF array_length(grp_list, 1) >= 3 THEN
+            grp_name := trim(grp_list[3]);
+            SELECT id INTO grp_id FROM orart.entity WHERE name = grp_name;
+            IF grp_id IS NULL THEN
+                INSERT INTO orart.entity(name, filt_1)
+                VALUES (grp_name, 'grupa')
+                RETURNING id INTO grp_id;
+            END IF;
+            grp3_id := grp_id;
+        END IF;
+
+        -- actualizează rândul curent din temp_table
+        UPDATE orart.temp_table
+        SET id_group_1 = grp1_id,
+            id_group_2 = grp2_id,
+            id_group_3 = grp3_id
+        WHERE obj_name = rec.obj_name
+          AND group_name = rec.group_name;
+    END LOOP;
+end;
+$$
+
+call orart.test_conversion();
+
+select * from orart.temp_table;
+select * from orart.entity;
+SELECT setval('orart.entity_id_seq', 20, false);
+delete from orart.entity where id > 12;
+delete from orart.temp_table where id_obj > 0;
+
+----------------------------------------------------
+CREATE OR REPLACE PROCEDURE orart.load_disciplines()
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    rec RECORD;
+BEGIN
+    FOR rec IN
+        SELECT DISTINCT id_obj,
+               id_type,
+               lesson_count::NUMERIC::INT AS hours
+        FROM orart.temp_table
+        WHERE id_obj IS NOT NULL
+          AND id_type IS NOT NULL
+    LOOP
+        INSERT INTO orart.discipline(id_entity, id_entity_t, cant_p_week, date_start, date_stop)
+        VALUES (rec.id_obj, rec.id_type, rec.hours,
+                TO_DATE('01.09.2025','DD.MM.YYYY'),
+                TO_DATE('01.09.2027','DD.MM.YYYY'))
+        ON CONFLICT DO NOTHING;
+    END LOOP;
+END;
+$$;
+
+call orart.load_disciplines();
+
+select * from orart.discipline d;
+SELECT setval('orart.discipline_id_seq', 20, false);
+delete from orart.discipline where id > 0;
+-----------------------------------------------------
+CREATE OR REPLACE PROCEDURE orart.load_cluster_group()
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    rec RECORD;
+    cluster_id INT;
+    cluster_name TEXT;
+    parent_id INT;
+BEGIN
+    -- 1. Creăm clustere doar pentru combinații unice de grupe (minim 2 grupe)
+    FOR rec IN
+        SELECT DISTINCT id_group_1, id_group_2, id_group_3
+        FROM orart.temp_table
+        WHERE (id_group_2 IS NOT NULL OR id_group_3 IS NOT NULL)
+    LOOP
+        -- construim denumirea clusterului pe baza combinației de grupe
+        cluster_name := 'Cluster_' ||
+                        array_to_string(
+                            ARRAY[
+                                rec.id_group_1::TEXT,
+                                rec.id_group_2::TEXT,
+                                rec.id_group_3::TEXT
+                            ],
+                            '_'
+                        );
+
+        -- verificăm dacă clusterul există deja
+        SELECT id INTO cluster_id
+        FROM orart.entity
+        WHERE filt_1 = 'cluster'
+          AND name = cluster_name;
+
+        -- dacă nu există, îl creăm
+        IF cluster_id IS NULL THEN
+            INSERT INTO orart.entity(name, filt_1)
+            VALUES (cluster_name, 'cluster')
+            RETURNING id INTO cluster_id;
+        END IF;
+
+        -- legăm grupele la cluster (cl-gr)
+        IF rec.id_group_1 IS NOT NULL THEN
+            INSERT INTO orart.cluster_group(id_entity, id_parent, relation_type)
+            VALUES (rec.id_group_1, cluster_id, 'cl-gr')
+            ON CONFLICT DO NOTHING;
+        END IF;
+        IF rec.id_group_2 IS NOT NULL THEN
+            INSERT INTO orart.cluster_group(id_entity, id_parent, relation_type)
+            VALUES (rec.id_group_2, cluster_id, 'cl-gr')
+            ON CONFLICT DO NOTHING;
+        END IF;
+        IF rec.id_group_3 IS NOT NULL THEN
+            INSERT INTO orart.cluster_group(id_entity, id_parent, relation_type)
+            VALUES (rec.id_group_3, cluster_id, 'cl-gr')
+            ON CONFLICT DO NOTHING;
+        END IF;
+
+        -- actualizăm temp_table cu id_cluster
+        UPDATE orart.temp_table
+        SET id_cluster = cluster_id
+        WHERE id_group_1 IS NOT DISTINCT FROM rec.id_group_1
+          AND id_group_2 IS NOT DISTINCT FROM rec.id_group_2
+          AND id_group_3 IS NOT DISTINCT FROM rec.id_group_3;
+    END LOOP;
+
+    -- 2. Legături subgrupă → grupă (sb-gr)
+    FOR rec IN
+        SELECT id, name
+        FROM orart.entity
+        WHERE filt_1 = 'subgrupa'
+    LOOP
+        -- găsim grupa principală (partea dinainte de '-')
+        SELECT id INTO parent_id
+        FROM orart.entity
+        WHERE name = split_part(rec.name,'-',1)
+          AND filt_1 = 'grupa';
+
+        IF parent_id IS NOT NULL THEN
+            INSERT INTO orart.cluster_group(id_entity, id_parent, relation_type)
+            VALUES (rec.id, parent_id, 'sb-gr')
+            ON CONFLICT DO NOTHING;
+        END IF;
+    END LOOP;
+	insert into orart.cluster_group(id_entity, id_parent, relation_type)
+select distinct id_parent::INT as id_parent, null::int, 'cl-gr'::text from orart.cluster_group where 
+id_parent not in (select id_entity from orart.cluster_group); 
+END;
+$$;
+
+
+select * from orart.entity;
+
+
+call orart.load_cluster_group();
+
+select * from orart.cluster_group cg; 
+SELECT setval('orart.cluster_group_id_seq', 20, false);
+delete from orart.cluster_group where id > 0;
+
+--------------------------------------------------------------------------------------
+
+CREATE OR REPLACE PROCEDURE orart.load_prof_lect_cluster()
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    rec RECORD;
+    disc_id INT;
+    hours INT;
+    target_c INT;
+BEGIN
+    -- iterate through distinct rows that can yield lessons
+    FOR rec IN
+        SELECT DISTINCT
+               t.id_teacher,
+               t.id_obj,
+               t.id_type,
+               t.lesson_count,
+               t.id_cluster,
+               t.id_group_1,
+               t.id_group_2,
+               t.id_group_3
+        FROM orart.temp_table t
+        WHERE t.id_teacher IS NOT NULL
+          AND t.id_obj     IS NOT NULL
+          AND t.id_type    IS NOT NULL
+    LOOP
+        -- normalize hours
+        hours := NULL;
+        IF rec.lesson_count IS NOT NULL THEN
+            BEGIN
+                hours := rec.lesson_count::NUMERIC::INT;
+            EXCEPTION WHEN others THEN
+                hours := NULL;
+            END;
+        END IF;
+
+        -- find the discipline id (must exist from load_disciplines)
+        SELECT d.id INTO disc_id
+        FROM orart.discipline d
+        WHERE d.id_entity   = rec.id_obj
+          AND d.id_entity_t = rec.id_type
+          AND (hours IS NULL OR d.cant_p_week = hours)
+        ORDER BY d.id -- deterministic pick if multiple dates
+        LIMIT 1;
+
+        -- if discipline missing, skip safely
+        IF disc_id IS NULL THEN
+            CONTINUE;
+        END IF;
+
+        -- case 1: cluster exists -> single record linked to the cluster
+        IF rec.id_cluster IS NOT NULL THEN
+            target_c := rec.id_cluster;
+
+            INSERT INTO orart.prof_lect_cluster(id_entity_p, id_entity_l, id_entity_c, date_start, date_stop)
+            VALUES (rec.id_teacher, disc_id, target_c,
+                    DATE '2025-09-01', DATE '2027-09-01')
+            ON CONFLICT DO NOTHING;
+
+        ELSE
+            -- case 2: no cluster -> create records for each present group/subgroup
+            IF rec.id_group_1 IS NOT NULL THEN
+                INSERT INTO orart.prof_lect_cluster(id_entity_p, id_entity_l, id_entity_c, date_start, date_stop)
+                VALUES (rec.id_teacher, disc_id, rec.id_group_1,
+                        DATE '2025-09-01', DATE '2027-09-01')
+                ON CONFLICT DO NOTHING;
+            END IF;
+
+            IF rec.id_group_2 IS NOT NULL THEN
+                INSERT INTO orart.prof_lect_cluster(id_entity_p, id_entity_l, id_entity_c, date_start, date_stop)
+                VALUES (rec.id_teacher, disc_id, rec.id_group_2,
+                        DATE '2025-09-01', DATE '2027-09-01')
+                ON CONFLICT DO NOTHING;
+            END IF;
+
+            IF rec.id_group_3 IS NOT NULL THEN
+                INSERT INTO orart.prof_lect_cluster(id_entity_p, id_entity_l, id_entity_c, date_start, date_stop)
+                VALUES (rec.id_teacher, disc_id, rec.id_group_3,
+                        DATE '2025-09-01', DATE '2027-09-01')
+                ON CONFLICT DO NOTHING;
+            END IF;
+        END IF;
+
+    END LOOP;
+END;
+$$;
+
+call orart.load_prof_lect_cluster();
+
+select * from orart.prof_lect_cluster;
+SELECT setval('orart.prof_lect_cluster_id_seq', 20, false);
+delete from orart.prof_lect_cluster where id > 0;
+
+create or replace view orart.v_discipline as 
+	select d.*
+			,e.name lessonName
+			,e1.name lessonType
+	from orart.discipline d
+		left join orart.entity e on d.id_entity = e.id
+		left join orart.entity e1 on d.id_entity_t = e1.id
+
+create or replace view orart.v_cluster_group as
+	select cg.*
+			,e.name entityName
+	from orart.cluster_group cg
+		left join orart.entity e on cg.id_entity = e.id
+
+ 
+		
+		
+create or replace view orart.v_prof_lect_cluster as
+	select plc.*
+			,e.name profName
+			,d.lessonName
+			,d.lessonType
+			,d.cant_p_week
+			,cg.entityName
+			,cg.parentName
+	from orart.prof_lect_cluster plc
+		left join orart.entity e on plc.id_entity_p = e.id
+		left join orart.v_discipline d on plc.id_entity_l = d.id
+		left join orart.v_cluster_group cg on plc.id_entity_c = cg.id_entity
 
 
 
---Views/functions
-
-select * from orarnew.v2_std_plan_d
-create or replace view orarnew.v_std_plan_d as
-select m.*
-	,e.filt1 comun
-from orarnew.std_plan_d m
-left join orarnew.entity e on m.id_entity = e.id
-
---View pentru unire mai departe	
-
-create or replace view orarnew.v_std_plan_d as
-select spd.*
-	,e.name
-	,e.filt1 comun
-from orarnew.std_plan_d spd
-left join orarnew.entity e on spd.id_entity = e.id
-
-create or replace view orarnew.gcluster as
-select gc.*
-	,e.name cluster_name
-	,e1.name group_name
-from orarnew.gcluster gc
-left join orarnew.entity e on gc.id_cluster = e.id
-left join orarnew.entity e1 on gc.id_group = e1.id
-
-create or replace view orarnew.cluster_plan_connection as
-select cpc.*
-	,e.name lesson_name
-	,e1.name cluster_name
-from orarnew.cluster_plan_connection cpc
-left join orarnew.entity e on cpc.id_lesson_name = e.id
-left join orarnew.entity e1 on cpc.id_cluster = e1.id
+CREATE OR REPLACE VIEW orart.v_prof_lect_cluster_2 AS
+SELECT plc.id_entity_l   AS LessonId,
+       d.lessonName,
+       d.lessonType,
+       plc.id_entity_p   AS ProfessorId,
+       e.name            AS Professor,
+       d.cant_p_week     AS CantPWeek,
+       COALESCE(cgCluster.parentName, cg.entityName) AS TargetName,
+       COALESCE(cgCluster.entityName, cg.parentName) AS ParentName,
+       plc.id_entity_c   AS TargetId,
+       et.filt_1         AS TargetType,
+       COALESCE(cgCluster.relation_type, cg.relation_type) AS RelationType
+FROM orart.prof_lect_cluster plc
+LEFT JOIN orart.entity e ON plc.id_entity_p = e.id
+LEFT JOIN orart.v_discipline d ON plc.id_entity_l = d.id
+-- join pentru grupe/subgrupe
+LEFT JOIN orart.v_cluster_group cg ON plc.id_entity_c = cg.id_entity
+-- join pentru clustere (id_entity_c = id_parent)
+LEFT JOIN orart.v_cluster_group cgCluster ON plc.id_entity_c = cgCluster.id_parent
+LEFT JOIN orart.entity et ON plc.id_entity_c = et.id;
 
 
-select * from orarnew.v_lesson_cluster_group_plan where id_plan = 1 and (cluster_name != 'Group2' or cluster_name is null);
-create or replace view orarnew.v_lesson_cluster_group_plan as
-select 
-    m.*,                         -- all columns from std_plan_d
-    e_entity.filt1 as comun,     -- from entity linked to std_plan_d.id_entity
-    e_entity.name  as lesson_name, -- lesson name directly from std_plan_d's entity
-    e_cluster.name as cluster_name,
-    e_group.name   as group_name
-from orarnew.std_plan_d m
-left join orarnew.entity e_entity
-    on m.id_entity = e_entity.id
-left join orarnew.cluster_plan_connection cpc
-    on cpc.id_lesson_name = m.id_entity
-left join orarnew.entity e_cluster
-    on cpc.id_cluster = e_cluster.id
-left join orarnew.gcluster gc
-    on gc.id_cluster = e_cluster.id
-left join orarnew.entity e_group
-    on gc.id_group = e_group.id;
-	
-	
-	
+select plc.id_entity_1 as lessonId,
+		
+FROM orart.prof_lect_cluster plc
 
-	
-	
-	
-	
+select * from orart.prof_lect_cluster where id_entity_c =56; 
+
+CREATE OR REPLACE VIEW orart.v_prof_lect_cluster_1 AS
+select plc.id, plc.id_entity_c,
+d.id_entity AS LessonId,
+d.lessonName,
+d.lessonType,
+plc.id_entity_p AS ProfessorId,
+e.name AS Professor,
+d.cant_p_week AS CantPWeek,
+coalesce(cg.id_entity, cg.id_parent) AS TargetId,
+cg.entityName AS TargetName,
+cg.id_parent as ParentId,
+(select name from orart.entity where cg.id_parent = id) as ParentName,
+et.filt_1 AS TargetType,
+cg.relation_type AS RelationType FROM orart.prof_lect_cluster plc
+LEFT JOIN orart.entity e ON plc.id_entity_p = e.id
+LEFT JOIN orart.v_discipline d ON plc.id_entity_l = d.id
+LEFT JOIN orart.v_cluster_group cg ON plc.id_entity_c = cg.id_entity
+LEFT JOIN orart.entity et ON cg.id_entity = et.id;
+
+drop view orart.v_prof_lect_cluster_3 cascade;
+select * from orart.entity;
+select * from orart.cluster_group cg; 
+
+
+
+--CREATE OR REPLACE VIEW orart.v_prof_lect_cluster_4 as
+--
+select plc.id, plc.id_entity_c, plc.id_entity_l,
+d.id_entity AS LessonId,
+d.lessonName,
+d.lessonType,
+plc.id_entity_p AS ProfessorId,
+e.name AS Professor,
+d.cant_p_week AS CantPWeek,
+coalesce(cg.id_entity, cg.id_parent) AS TargetId,
+cg.entityName AS TargetName,
+cg.id_parent as ParentId,
+(select name from orart.entity where cg.id_parent = id) as ParentName,
+et.filt_1 AS TargetType,
+cg.relation_type AS RelationType 
+FROM orart.prof_lect_cluster plc
+LEFT JOIN orart.entity e ON plc.id_entity_p = e.id
+LEFT JOIN orart.v_discipline d ON plc.id_entity_l = d.id
+LEFT JOIN orart.v_cluster_group cg ON plc.id_entity_c = cg.id_entity
+LEFT JOIN orart.entity et ON cg.id_entity = et.id;
+
+create or replace view orart.v_assigments as 
+select r.LessonId, r.LessonName, r.LessonType, r.CantPWeek, r.ProfessorId, r.Professor, r.id_entity_c 
+from orart.v_prof_lect_cluster_1 r 
+group by r.LessonId, r.LessonName, r.LessonType, r.CantPWeek, r.ProfessorId, r.Professor, r.id_entity_c; 
+
+
+
+select a.* from  orart.v_prof_lect_cluster_1 r,
+orart.v_prof_lect_cluster_1 a
+where a.lessonid = 20 and a.lessontype = 'prel.' and a.ProfessorId = 33 and a.id_entity_c = 77 and
+r.targettype = 'cluster' and r.parentname = a.TargetName;
+
+select a.* from  orart.v_prof_lect_cluster_1 a
+where a.lessonid = 20 and a.lessontype = 'prel.' and a.ProfessorId = 33 and a.id_entity_c = 77;
+
+select a.* from  orart.v_prof_lect_cluster_1 a
+where TargetType = 'grupa'
+and ParentName = 'Cluster_59_60';
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 

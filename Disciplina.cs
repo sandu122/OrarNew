@@ -9,6 +9,8 @@ namespace OrarUniver
         public string? LessonType { get; set; }
         public int ProfessorId { get; set; }
         public string? Professor { get; set; }
+        public int? RoomId { get; set; }//
+        public string? RoomName { get; set; }//
         public int HoursPerWeek { get; set; }
         public List<string> Groups { get; set; } = new();// Prelegere: denumirile grupelor (legacy)
         public List<int> GroupIds { get; set; } = new();// Prelegere: ID‑urile grupelor

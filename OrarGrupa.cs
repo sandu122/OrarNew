@@ -1,6 +1,6 @@
 ﻿namespace OrarUniver;
 
-public class OrarGrupa
+public partial class OrarGrupa
 {
     public int Id { get; set; }          // ID numeric (entity.id pentru grupa)
     public string Grupa { get; set; }
@@ -76,7 +76,6 @@ public class OrarGrupa
             s.ActivitateImpar2 != null);
 
 
-    // === NOI HELPERI PENTRU NOUA LOGICĂ SIMPLIFICATĂ ===
     private static bool SlotEsteGol(SlotOrar s) =>
         s.ActivitateSaptamanal == null &&
         s.ActivitateSaptamanal2 == null &&
@@ -417,7 +416,7 @@ public class OrarGrupa
     }
 
     // =================== PUNCT PRINCIPAL: folosim noua structură Disciplina + Activitate ===================
-    public void GenereazaOrar(List<Disciplina> discipline, List<OrarGrupa> toateGrupele)
+    /*public void GenereazaOrar(List<Disciplina> discipline, List<OrarGrupa> toateGrupele)
     {
         foreach (var disc in discipline)
         {
@@ -464,10 +463,10 @@ public class OrarGrupa
                     break;
             }
         }
-    }
+    }*/
 
     // ========= NOU: PlaseazaCuCoeficient refăcut pentru noul model =========
-    private void PlaseazaCuCoeficient(Disciplina disc, TipActivitate tip, double? coef)
+    /*private void PlaseazaCuCoeficient(Disciplina disc, TipActivitate tip, double? coef)
     {
         if (coef == null || coef <= 0) return;
 
@@ -484,6 +483,8 @@ public class OrarGrupa
                 tip: tip,
                 professorId: disc.ProfessorId,
                 professor: disc.Professor,
+                roomId: null,
+                roomName: null,
                 groupIds: new[] { Id }, // această instanță a orarului
                 frequency: ActivityFrequency.Weekly
             );
@@ -501,6 +502,8 @@ public class OrarGrupa
                 tip: tip,
                 professorId: disc.ProfessorId,
                 professor: disc.Professor,
+                roomId: null,
+                roomName: null,
                 groupIds: new[] { Id },
                 frequency: ActivityFrequency.BiWeeklySplit
             );
@@ -509,7 +512,6 @@ public class OrarGrupa
         }
     }
 
-    // ========= NOU: laborator per subgrupă =========
     private void PlaseazaLaboratorSubgrupa(
         Disciplina disc,
         int groupId,
@@ -532,6 +534,8 @@ public class OrarGrupa
                 tip: TipActivitate.Laborator,
                 professorId: professorId,
                 professor: professor,
+                roomId: null,
+                roomName: null,
                 groupId: groupId,
                 subgroupId: subgroupId,
                 frequency: ActivityFrequency.Weekly,
@@ -548,6 +552,8 @@ public class OrarGrupa
                 tip: TipActivitate.Laborator,
                 professorId: professorId,
                 professor: professor,
+                roomId: null,
+                roomName: null,
                 groupId: groupId,
                 subgroupId: subgroupId,
                 frequency: ActivityFrequency.BiWeeklySplit,
@@ -556,7 +562,6 @@ public class OrarGrupa
         }
     }
 
-    // ========= NOU: prelegere comună (cluster) pe mai multe grupe simultan =========
     private void PlaseazaComunaCuCoeficient(Disciplina disc, TipActivitate tip, double? coef, List<OrarGrupa> toateGrupele)
     {
         if (coef == null || coef <= 0 || disc.GroupIds.Count <= 1) return;
@@ -573,6 +578,8 @@ public class OrarGrupa
                 tip: tip,
                 professorId: disc.ProfessorId,
                 professor: disc.Professor,
+                roomId: null,
+                roomName: null,
                 groupIds: disc.GroupIds,   // toate grupele implicate
                 frequency: ActivityFrequency.Weekly
             );
@@ -588,15 +595,17 @@ public class OrarGrupa
                 tip: tip,
                 professorId: disc.ProfessorId,
                 professor: disc.Professor,
+                roomId: null,
+                roomName: null,
                 groupIds: disc.GroupIds,
                 frequency: ActivityFrequency.BiWeeklySplit
             );
             PlaseazaComunaActivitate(actBi, cuParitate: true, disc.GroupIds, toateGrupele);
         }
-    }
+    }*/
 
     // Înlocuiește vechiul mecanism bazat pe Clusters
-    private void PlaseazaComunaActivitate(Activitate activitate, bool cuParitate, List<int> groupIds, List<OrarGrupa> toateGrupele)
+    private void PlaseazaComunaActivitate(Activitate activitate, bool cuParitate, List<int> groupIds, List<OrarGrupa> toateGrupele, List<Entity> rooms)
     {
         // Selectăm obiectele OrarGrupa vizate
         var grupeTarget = toateGrupele.Where(g => groupIds.Contains(g.Id)).ToList();
@@ -664,6 +673,11 @@ public class OrarGrupa
 
                 if (!ok) continue;
 
+                // NOU: atribuim cabinet, altfel respingem (zi, pereche) și încercăm altul
+                // folosim primul slot din set ca "anchor" (are aceeași zi și pereche)
+                if (!TryAssignRoomForSlot(activitate, slotSet[0], cuParitate, toateGrupele, rooms))
+                    continue;
+
                 // Plasăm aceeași instanță în toate grupele (pentru conflict comun)
                 foreach (var slot in slotSet)
                 {
@@ -693,10 +707,14 @@ public class OrarGrupa
         Console.WriteLine($"⚠ Nu am găsit slot comun pentru {activitate} (lecture comună).");
     }
 
-    // ================== EXISTENT (nemodificat semnificativ, doar adaptat) ==================
-    private void PlaseazaActivitate(Activitate activitate, bool cuParitate, List<OrarGrupa>? toateGrupele)
+
+    private void PlaseazaActivitate(Activitate activitate, bool cuParitate, List<OrarGrupa>? toateGrupele, List<Entity> rooms)
     {
         var ziAleasa = AlegeZiuaCuIncarcareMinima();
+
+        // IMPORTANT: pentru verificarea cabinelor trebuie să vedem toate grupele,
+        // iar dacă nu e disponibilă lista, fallback pe "this"
+        var allGroups = toateGrupele ?? new List<OrarGrupa> { this };
 
         // --- adaugă buzunarele secundare în verificările de conflict din PlaseazaActivitate ---
         bool AlreadyPlacedInOtherGroupSameSlot(SlotOrar candidat)
@@ -717,12 +735,17 @@ public class OrarGrupa
                     )));
         }
 
+        bool CanAssignRoom(SlotOrar slot) =>
+            TryAssignRoomForSlot(activitate, slot, cuParitate, allGroups, rooms);
 
         // PASS 1
         foreach (var slot in Sloturi.Where(s => s.Ziua == ziAleasa))
         {
             if (AlreadyPlacedInOtherGroupSameSlot(slot)) continue;
             if (!PoatePlasaInSlot(slot, activitate, cuParitate, out bool vaOcupaNou)) continue;
+
+            // NOU: dacă nu găsim cabinet -> respingem slotul și căutăm altul
+            if (!CanAssignRoom(slot)) continue;
 
             int ocupate = PerechiOcupateInZi(slot.Ziua);
             int dupaPlasare = ocupate + (vaOcupaNou ? 1 : 0);
@@ -740,6 +763,8 @@ public class OrarGrupa
             if (AlreadyPlacedInOtherGroupSameSlot(slot)) continue;
             if (!PoatePlasaInSlot(slot, activitate, cuParitate, out bool vaOcupaNou)) continue;
 
+            if (!CanAssignRoom(slot)) continue;
+
             int ocupate = PerechiOcupateInZi(slot.Ziua);
             int dupaPlasare = ocupate + (vaOcupaNou ? 1 : 0);
 
@@ -755,6 +780,8 @@ public class OrarGrupa
         {
             if (AlreadyPlacedInOtherGroupSameSlot(slot)) continue;
             if (!PoatePlasaInSlot(slot, activitate, cuParitate, out bool vaOcupaNou)) continue;
+
+            if (!CanAssignRoom(slot)) continue;
 
             int ocupate = PerechiOcupateInZi(slot.Ziua);
             int dupaPlasare = ocupate + (vaOcupaNou ? 1 : 0);
